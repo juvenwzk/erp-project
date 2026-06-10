@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kangcode.Mapper.SaleOrderMapper">
+
+    <!-- 字段映射：将DB列名映射到实体类字段 -->
+    <resultMap id="saleOrderMap" type="com.kangcode.pojo.SaleOrder">
+        <id property="id" column="id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="custId" column="cust_id"/>
+        <result property="saleNum" column="sale_num"/>
+        <result property="salePrice" column="sale_price"/>
+        <result property="saleMoney" column="sale_money"/>
+        <result property="userId" column="user_id"/>
+        <result property="status" column="status"/>
+        <result property="saleTime" column="sale_time"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="goodsName" column="goodsName"/>
+        <result property="custName" column="custName"/>
+    </resultMap>
+
+    <select id="listByStatus" resultMap="saleOrderMap">
+        SELECT
+        s.*,
+        g.goods_name AS goodsName,
+        c.cust_name AS custName
+        FROM sale_order s
+        LEFT JOIN goods g ON s.goods_id = g.id
+        LEFT JOIN customer c ON s.cust_id = c.id
+        <where>
+            <if test="status != null">
+                and s.status = #{status}
+            </if>
+        </where>
+        ORDER BY s.sale_time DESC
+    </select>
+
+    <!-- 新增销售订单 -->
+    <insert id="addOrder">
+       insert into sale_order (
+        goods_id,
+        cust_id,
+        sale_num,
+        sale_price,
+        sale_money,
+        user_id,
+        status,
+        sale_time,
+        create_time,
+        update_time
+        ) values (
+        #{goodsId},
+        #{custId},
+        #{saleNum},
+        #{salePrice},
+        #{saleMoney},
+        #{userId},
+        #{status},
+        #{saleTime},
+        #{createTime},
+        #{updateTime}
+        )
+    </insert>
+
+    <!-- 修改销售订单 -->
+    <update id="updateById">
+        update sale_order
+        <set>
+            <if test="goodsId != null">
+                goods_id = #{goodsId},
+            </if>
+            <if test="custId != null">
+                cust_id = #{custId},
+            </if>
+            <if test="saleNum != null">
+                sale_num = #{saleNum},
+            </if>
+            <if test="salePrice != null">
+                sale_price = #{salePrice},
+            </if>
+            <if test="saleMoney != null">
+                sale_money = #{saleMoney},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="saleTime != null">
+                sale_time = #{saleTime},
+            </if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+
+    <!-- 删除销售订单 -->
+    <delete id="deleteById">
+        delete from sale_order where id = #{id}
+    </delete>
+
+    <!-- 根据ID查询销售订单 -->
+    <select id="getById" resultMap="saleOrderMap">
+
+        SELECT
+        s.*,
+        g.goods_name AS goodsName,
+        c.cust_name AS custName
+        FROM sale_order s
+        LEFT JOIN goods g ON s.goods_id = g.id
+        LEFT JOIN customer c ON s.cust_id = c.id
+        WHERE s.id = #{id}
+
+    </select>
+
+    <!-- 分页条件查询采购订单（✅ 已修复，无user_id） -->
+    <select id="list" resultMap="saleOrderMap">
+    SELECT
+        s.*,
+        g.goods_name  goodsName,
+        c.cust_name AS custName
+        FROM sale_order s
+        LEFT JOIN goods g ON s.goods_id = g.id
+        LEFT JOIN customer c ON s.cust_id = c.id
+        <where>
+            <if test="status != null">
+                and s.status = #{status}
+            </if>
+            <if test="goodsId != null">
+                and s.goods_id = #{goodsId}
+            </if>
+            <if test="custId != null">
+                and s.cust_id = #{custId}
+            </if>
+            <if test="saleTimeStart != null and saleTimeEnd != null">
+                and s.sale_time between #{saleTimeStart} and #{saleTimeEnd}
+            </if>
+            <if test="userId != null">
+                and s.user_id = #{userId}
+            </if>
+        </where>
+        order by s.sale_time DESC
+    </select>
+
+</mapper>

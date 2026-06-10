@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kangcode.Mapper.PurchaseMapper">
+
+    <!-- 字段映射：将DB列名映射到实体类字段 -->
+    <resultMap id="purchaseMap" type="com.kangcode.pojo.PurchaseOrder">
+        <id property="id" column="id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="supplierId" column="supplier_id"/>
+        <result property="buyNum" column="buy_num"/>
+        <result property="buyPrice" column="buy_price"/>
+        <result property="totalMoney" column="total_money"/>
+        <result property="userId" column="user_id"/>
+        <result property="buyTime" column="buy_time"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="goodsName" column="goodsName"/>
+        <result property="supplierName" column="supplierName"/>
+    </resultMap>
+
+    <select id="listByStatus" resultMap="purchaseMap">
+        SELECT
+        p.*,
+        s.supplier_name AS supplierName,
+        g.goods_name AS goodsName
+        FROM purchase_order p
+        LEFT JOIN supplier s ON p.supplier_id = s.id
+        LEFT JOIN goods g ON p.goods_id = g.id
+        <where>
+            <if test="status != null">
+                and p.status = #{status}
+            </if>
+        </where>
+        ORDER BY p.buy_time DESC
+    </select>
+
+    <!-- 新增采购订单 -->
+    <insert id="addOrder">
+       insert into purchase_order (
+        goods_id,
+        supplier_id,
+        buy_num,
+        buy_price,
+        total_money,
+        user_id,
+        status,
+        buy_time,
+        create_time,
+        update_time
+        ) values (
+        #{goodsId},
+        #{supplierId},
+        #{buyNum},
+        #{buyPrice},
+        #{totalMoney},
+        #{userId},
+        #{status},
+        #{buyTime},
+        #{createTime},
+        #{updateTime}
+        )
+    </insert>
+
+    <!-- 修改采购订单 -->
+    <update id="updateById">
+        update purchase_order
+        <set>
+            <if test="goodsId != null">
+                goods_id = #{goodsId},
+            </if>
+            <if test="supplierId != null">
+                supplier_id = #{supplierId},
+            </if>
+            <if test="buyNum != null">
+                buy_num = #{buyNum},
+            </if>
+            <if test="buyPrice != null">
+                buy_price = #{buyPrice},
+            </if>
+            <if test="totalMoney != null">
+                total_money = #{totalMoney},
+            </if>
+            <if test="userId != null">
+                user_id = #{userId},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="buyTime != null">
+                buy_time = #{buyTime},
+            </if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+
+    <!-- 删除采购订单 -->
+    <delete id="deleteById">
+        delete from purchase_order where id = #{id}
+    </delete>
+
+    <!-- 根据ID查询采购订单 -->
+    <select id="getById" resultMap="purchaseMap">
+        SELECT
+        p.*,
+        g.goods_name AS goodsName,
+        s.supplier_name AS supplierName
+        FROM purchase_order p
+        LEFT JOIN goods g ON p.goods_id = g.id
+        LEFT JOIN supplier s ON p.supplier_id = s.id
+        WHERE p.id = #{id}
+    </select>
+
+    <!-- 分页条件查询采购订单 -->
+    <select id="list" resultMap="purchaseMap">
+        SELECT
+        p.*,
+        s.supplier_name AS supplierName,
+        g.goods_name AS goodsName
+        FROM purchase_order p
+        LEFT JOIN supplier s ON p.supplier_id = s.id
+        LEFT JOIN goods g ON p.goods_id = g.id
+        <where>
+
+            <if test="goodsId != null">
+                and p.goods_id = #{goodsId}
+            </if>
+            <if test="supplierId != null">
+                and p.supplier_id = #{supplierId}
+            </if>
+            <if test="buyTimeStart != null and buyTimeEnd != null">
+                and p.buy_time between #{buyTimeStart} and #{buyTimeEnd}
+            </if>
+        </where>
+        ORDER BY p.buy_time DESC
+    </select>
+
+</mapper>

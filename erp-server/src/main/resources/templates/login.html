@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ERP 进销存管理系统 - 登录</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-container {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      padding: 40px;
+      width: 400px;
+      max-width: 90vw;
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .login-header h1 {
+      font-size: 24px;
+      color: #1a1a2e;
+      font-weight: 700;
+    }
+    .login-header p {
+      color: #909399;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      color: #606266;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #dcdfe6;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group input:focus {
+      border-color: #409eff;
+      box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.15);
+    }
+    .form-group input.error {
+      border-color: #f56c6c;
+    }
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #409eff, #337ecc);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .login-btn:hover { opacity: 0.9; }
+    .login-btn:active { transform: scale(0.98); }
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .error-msg {
+      color: #f56c6c;
+      font-size: 13px;
+      text-align: center;
+      margin-bottom: 16px;
+      min-height: 20px;
+    }
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .footer-text {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #c0c4cc;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <h1>ERP 进销存管理系统</h1>
+      <p>请登录您的账号</p>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <form id="loginForm" onsubmit="return false;">
+      <div class="form-group">
+        <label for="username">用户名</label>
+        <input type="text" id="username" placeholder="请输入用户名" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="password">密码</label>
+        <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password" />
+      </div>
+
+      <button type="submit" class="login-btn" id="loginBtn" onclick="handleLogin()">
+        登 录
+      </button>
+    </form>
+
+    <div class="footer-text">© ERP 进销存管理系统</div>
+  </div>
+
+  <script>
+    // 如果已登录（且有完整信息），直接跳转到主页
+    (function() {
+      try {
+        const stored = localStorage.getItem('erp_login');
+        if (stored) {
+          const info = JSON.parse(stored);
+          if (info && info.token !== undefined && info.role !== undefined && info.role !== null) {
+            window.location.replace('/dashboard');
+          } else {
+            // 旧数据不完整（缺 role 等），清掉让用户重新登录
+            localStorage.removeItem('erp_login');
+            localStorage.removeItem('erp_username');
+          }
+        }
+      } catch(e) {
+        localStorage.removeItem('erp_login');
+        localStorage.removeItem('erp_username');
+      }
+    })();
+
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
+    // 清除浏览器自动填充的值，确保退出登录后输入框为空
+    usernameEl.value = '';
+    passwordEl.value = '';
+    // 有些浏览器在页面加载后才会自动填充，延时再清一次
+    setTimeout(function() {
+      usernameEl.value = '';
+      passwordEl.value = '';
+    }, 100);
+    const errorMsgEl = document.getElementById('errorMsg');
+    const loginBtnEl = document.getElementById('loginBtn');
+
+    // 回车键触发登录
+    passwordEl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') handleLogin();
+    });
+    usernameEl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') passwordEl.focus();
+    });
+
+    async function handleLogin() {
+      const username = usernameEl.value.trim();
+      const password = passwordEl.value.trim();
+
+      // 清空错误
+      errorMsgEl.textContent = '';
+      usernameEl.classList.remove('error');
+      passwordEl.classList.remove('error');
+
+      // 前端校验
+      if (!username) {
+        errorMsgEl.textContent = '请输入用户名';
+        usernameEl.classList.add('error');
+        usernameEl.focus();
+        return;
+      }
+      if (!password) {
+        errorMsgEl.textContent = '请输入密码';
+        passwordEl.classList.add('error');
+        passwordEl.focus();
+        return;
+      }
+
+      // 按钮 loading 状态
+      loginBtnEl.disabled = true;
+      loginBtnEl.innerHTML = '<span class="loading-spinner"></span>登录中...';
+
+      try {
+        // 调用后端登录接口 POST /login
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        // 尝试解析响应
+        let result;
+        let cloned;
+        try {
+          // 先 clone 再解析，避免 body stream already read 错误
+          cloned = response.clone();
+          result = await response.json();
+        } catch (e) {
+          // 如果不是 JSON，读取文本（用 clone 后的副本）
+          let text;
+          try {
+            text = await cloned.text();
+          } catch (e2) {
+            text = response.status + ' ' + response.statusText;
+          }
+          throw new Error(text || '服务器返回格式异常');
+        }
+
+        if (result.code === 200 && result.data) {
+          // 登录成功，保存用户信息
+          const loginInfo = result.data;
+
+          // name 和 role 已由后端直接返回
+
+          localStorage.setItem('erp_username', loginInfo.name || loginInfo.username);
+          localStorage.setItem('erp_login', JSON.stringify(loginInfo));
+
+          // 跳转到主页面
+          window.location.href = '/dashboard';
+        } else {
+          // 登录失败
+          const msg = result.message || '用户名或密码错误';
+          errorMsgEl.textContent = msg;
+          passwordEl.value = '';
+          passwordEl.focus();
+        }
+      } catch (err) {
+        errorMsgEl.textContent = '网络错误：' + err.message;
+      } finally {
+        loginBtnEl.disabled = false;
+        loginBtnEl.textContent = '登 录';
+      }
+    }
+  </script>
+</body>
+</html>

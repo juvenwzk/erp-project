@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kangcode.Mapper.CustomerMapper">
+
+    <resultMap id="customerMap" type="com.kangcode.pojo.Customer">
+        <id property="id" column="id"/>
+        <result property="custName" column="cust_name"/>
+        <result property="contactPreson" column="contact_preson"/>
+        <result property="phone" column="phone"/>
+        <result property="address" column="address"/>
+        <result property="remark" column="remark"/>
+        <result property="type" column="type"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <insert id="insert">
+        insert into customer (
+        cust_name,
+        contact_preson,
+        phone,
+        address,
+        remark,
+        type,
+        create_time,
+        update_time
+        )
+        values (
+        #{custName},
+        #{contactPreson},
+        #{phone},
+        #{address},
+        #{remark},
+        #{type},
+        #{createTime},
+        #{updateTime}
+        )
+    </insert>
+    <update id="updateById">
+        update customer
+        <set>
+            cust_name = #{custName},
+            contact_preson = #{contactPreson},
+            <if test="phone != null and phone != ''">
+                phone = #{phone},
+            </if>
+            <if test="address != null and address != ''">
+                address = #{address},
+            </if>
+            <if test="remark != null">
+                remark = #{remark},
+            </if>
+            <if test="type != null">
+                type = #{type},
+            </if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+    <delete id="deleteById">
+        delete from customer where id = #{id}
+    </delete>
+    <select id="getById" resultMap="customerMap">
+        select * from customer where id = #{id}
+    </select>
+    <select id="listAll" resultMap="customerMap">
+        select * from customer order by id asc
+    </select>
+    <select id="list" resultMap="customerMap">
+        select c.* from customer c
+        <where>
+            <if test="custName != null and custName!=''">
+                and c.cust_name like concat('%',#{custName},'%')
+            </if>
+            <if test="phone!= null and phone!=''">
+                and c.phone like concat('%',#{phone},'%')
+            </if>
+        </where>
+        order by id asc
+    </select>
+
+</mapper>

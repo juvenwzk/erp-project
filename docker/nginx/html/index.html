@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ERP 进销存管理系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" crossorigin href="./assets/index-CMpYOR6T.css">
+  <link rel="stylesheet" href="./assets/modern.css?v=20260610-noflash2">
+  <style id="erp-antiflash">
+    /* 轻量防闪烁：仅淡入，不隐藏内容（避免卡死） */
+    body.erp-workspace .content {
+      animation: erpContentIn 0.12s ease;
+    }
+    @keyframes erpContentIn {
+      from { opacity: 0.92; }
+      to { opacity: 1; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <script>
+    // ===== 登录鉴权检查 =====
+    (function() {
+      try {
+        var loginStr = localStorage.getItem('erp_login');
+        if (!loginStr) {
+          window.location.replace('./login.html');
+          return;
+        }
+        var info = JSON.parse(loginStr);
+        // 旧数据没有 role — 清掉重新登录
+        if (!info || info.token === undefined || info.role === undefined || info.role === null) {
+          localStorage.removeItem('erp_login');
+          localStorage.removeItem('erp_username');
+          localStorage.removeItem('ai_chat');
+          window.location.replace('./login.html');
+          return;
+        }
+      } catch(e) {
+        localStorage.removeItem('erp_login');
+        localStorage.removeItem('erp_username');
+        localStorage.removeItem('ai_chat');
+        window.location.replace('./login.html');
+      }
+    })();
+
+    // 提供一个全局函数供 Vue SPA 获取当前登录用户
+    window.__getLoginUser = function() {
+      try {
+        var str = localStorage.getItem('erp_login');
+        if (str) return JSON.parse(str);
+      } catch(e) {}
+      return null;
+    };
+    window.__getUsername = function() {
+      try {
+        return localStorage.getItem('erp_username') || '';
+      } catch(e) { return ''; }
+    };
+  </script>
+  <script>
+    // ===== 库存预警检查 =====
+    (function() {
+      function updateLowStockUI() {
+        fetch('/api/goods/low-stock')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var count = Array.isArray(data) ? data.length : 0;
+            localStorage.setItem('erp_low_stock_count', count);
+            var items = document.querySelectorAll('.el-menu-item');
+            for (var i = 0; i < items.length; i++) {
+              if (items[i].textContent.indexOf('商品管理') >= 0) {
+                var old = items[i].querySelector('.low-stock-badge');
+                if (old) old.remove();
+                if (count > 0) {
+                  var b = document.createElement('span');
+                  b.className = 'low-stock-badge';
+                  b.textContent = count;
+                  items[i].appendChild(b);
+                }
+                break;
+              }
+            }
+          })
+          .catch(function() {});
+      }
+      setTimeout(updateLowStockUI, 2000);
+      setInterval(updateLowStockUI, 60000);
+    })();
+  </script>
+  <script>
+    // ===== 企业级仪表盘 — 数据来自后端 API =====
+    (function() {
+      var HTML = [
+        '<div class="dp-hero">',
+          '<div class="dp-hero-main">',
+            '<span class="dp-hero-tag">工作台</span>',
+            '<h2 class="dp-hero-title">经营数据一览</h2>',
+            '<p class="dp-hero-date" id="dpHeroDate">加载中...</p>',
+          '</div>',
+          '<div class="dp-hero-pills">',
+            '<span class="dp-pill dp-pill-alert" id="dpHeroAlert"><i class="fas fa-bell"></i> 库存预警 --</span>',
+            '<span class="dp-pill dp-pill-live"><i class="fas fa-circle"></i> 实时同步</span>',
+          '</div>',
+        '</div>',
+        '<div class="dp-stats dp-stats-bento">',
+          '<div class="dp-card dp-card-blue dp-card-featured"><div class="dp-card-inner"><div class="dp-card-icon"><i class="fas fa-boxes"></i></div><div class="dp-card-body"><div class="dp-card-title">商品总数量</div><div class="dp-card-num">--</div><div class="dp-card-trend up"><i class="fas fa-arrow-up"></i> 加载中...</div></div></div></div>',
+          '<div class="dp-card dp-card-green"><div class="dp-card-inner"><div class="dp-card-icon"><i class="fas fa-coins"></i></div><div class="dp-card-body"><div class="dp-card-title">库存总金额</div><div class="dp-card-num">--</div><div class="dp-card-trend up"><i class="fas fa-arrow-up"></i> 加载中...</div></div></div></div>',
+          '<div class="dp-card dp-card-orange"><div class="dp-card-inner"><div class="dp-card-icon"><i class="fas fa-cart-shopping"></i></div><div class="dp-card-body"><div class="dp-card-title">今日销售额</div><div class="dp-card-num">--</div><div class="dp-card-trend up"><i class="fas fa-arrow-up"></i> 加载中...</div></div></div></div>',
+          '<div class="dp-card dp-card-purple dp-card-wide"><div class="dp-card-inner"><div class="dp-card-icon"><i class="fas fa-truck-loading"></i></div><div class="dp-card-body"><div class="dp-card-title">今日采购额</div><div class="dp-card-num">--</div><div class="dp-card-trend up"><i class="fas fa-arrow-up"></i> 加载中...</div></div></div></div>',
+        '</div>',
+        '<div class="dp-charts-row dp-charts-asym">',
+          '<div class="dp-chart-box dp-chart-main"><div class="dp-chart-hd"><span class="dp-chart-badge dp-badge-blue"><i class="fas fa-chart-line"></i></span><div><div class="dp-chart-title">近7日销售/采购趋势</div><div class="dp-chart-desc">蓝=销售 · 琥珀=采购</div></div></div><div id="dpLineChart" class="dp-chart-wrap dp-chart-wrap-tall"></div></div>',
+          '<div class="dp-chart-box dp-chart-side"><div class="dp-chart-hd"><span class="dp-chart-badge dp-badge-indigo"><i class="fas fa-chart-pie"></i></span><div><div class="dp-chart-title">商品分类占比</div><div class="dp-chart-desc">按库存品类</div></div></div><div id="dpPieChart" class="dp-chart-wrap"></div></div>',
+        '</div>',
+        '<div class="dp-tables-row">',
+          '<div class="dp-section dp-section-alert"><div class="dp-section-hd"><span class="dp-section-icon dp-icon-warn"><i class="fas fa-exclamation-triangle"></i></span><div><div class="dp-section-title">库存预警</div><div class="dp-section-sub">低于安全库存的商品</div></div></div><div class="dp-table-wrap"><table class="dp-table" id="dpAlertTable"><thead><tr><th>商品编号</th><th>商品名称</th><th>商品分类</th><th>库存数量</th><th>库存下限</th><th>操作</th></tr></thead><tbody><tr><td colspan="6" style="text-align:center;padding:40px;color:#999;">加载中...</td></tr></tbody></table></div></div>',
+          '<div class="dp-section dp-section-orders"><div class="dp-section-hd"><span class="dp-section-icon dp-icon-blue"><i class="fas fa-file-invoice"></i></span><div><div class="dp-section-title">近期销售订单</div><div class="dp-section-sub">最新 10 笔交易</div></div></div><div class="dp-table-wrap"><table class="dp-table" id="dpOrderTable"><thead><tr><th>订单编号</th><th>商品名称</th><th>客户名称</th><th>销售数量</th><th>销售金额</th><th>下单时间</th><th>订单状态</th></tr></thead><tbody><tr><td colspan="7" style="text-align:center;padding:40px;color:#999;">加载中...</td></tr></tbody></table></div></div>',
+        '</div>'
+      ].join('');
+
+      var CHART_COLORS = ['#4A7FD4','#36A06E','#D4880F','#6366C4','#E06B52','#8B6BB8','#64748B'];
+
+      function fmtDate(d) {
+        var m = ('0'+(d.getMonth()+1)).slice(-2), day = ('0'+d.getDate()).slice(-2);
+        return d.getFullYear()+'-'+m+'-'+day;
+      }
+
+      function q(url) {
+        var headers = {};
+        try {
+          var loginStr = localStorage.getItem('erp_login');
+          if (loginStr) {
+            var info = JSON.parse(loginStr);
+            if (info && info.token) headers['Authorization'] = 'Bearer ' + info.token;
+          }
+        } catch(e) {}
+        return fetch(url, { headers: headers }).then(function(r){return r.json();}).then(function(r){if(r.code===200)return r.data;throw Error(r.message);});
+      }
+
+      function statusLabel(s) {
+        if(s===1) return '<span class="dp-tag dp-tag-warn">待发货</span>';
+        if(s===2) return '<span class="dp-tag dp-tag-success">已完成</span>';
+        if(s===4) return '<span class="dp-tag dp-tag-danger">已取消</span>';
+        return '<span class="dp-tag">未知</span>';
+      }
+
+      var lineChart = null, pieChart = null;
+      var resizeLine, resizePie;
+
+      function initCharts(lineData, catData) {
+        if (typeof echarts === 'undefined') return;
+        var days = [], sels = [], purs = [];
+        lineData.forEach(function(d){ days.push(d.label); sels.push(d.sales); purs.push(d.purchase); });
+
+        var le = document.getElementById('dpLineChart');
+        if (le) {
+          if (lineChart) { lineChart.dispose(); if(resizeLine)window.removeEventListener('resize',resizeLine); }
+          lineChart = echarts.init(le);
+          lineChart.setOption({
+            tooltip:{trigger:'axis'},
+            legend:{data:['销售额','采购额'],bottom:0,icon:'circle',itemWidth:8,itemHeight:8},
+            grid:{top:20,right:20,bottom:40,left:50},
+            xAxis:{type:'category',data:days,axisLine:{lineStyle:{color:'#e8e8e8'}},axisLabel:{color:'#999',fontSize:11}},
+            yAxis:{type:'value',splitLine:{lineStyle:{color:'#f5f5f5',type:'dashed'}},axisLabel:{color:'#999',fontSize:11,formatter:function(v){return v>=10000?(v/10000).toFixed(0)+'万':v;}}},
+            series:[
+              {name:'销售额',type:'line',smooth:true,symbol:'circle',symbolSize:6,lineStyle:{width:3,color:'#4A7FD4'},areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(74,127,212,0.25)'},{offset:1,color:'rgba(74,127,212,0.02)'}]}},data:sels},
+              {name:'采购额',type:'line',smooth:true,symbol:'circle',symbolSize:6,lineStyle:{width:3,color:'#D4880F'},areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(212,136,15,0.22)'},{offset:1,color:'rgba(212,136,15,0.02)'}]}},data:purs}
+            ]
+          });
+          resizeLine = function(){if(lineChart)lineChart.resize();};
+          window.addEventListener('resize', resizeLine);
+        }
+
+        var pe = document.getElementById('dpPieChart');
+        if (pe) {
+          if (pieChart) { pieChart.dispose(); if(resizePie)window.removeEventListener('resize',resizePie); }
+          pieChart = echarts.init(pe);
+          var pieData = catData.map(function(d,i){
+            return {value:d.value,name:d.name,itemStyle:{color:CHART_COLORS[i%CHART_COLORS.length]}};
+          });
+          pieChart.setOption({
+            tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},
+            legend:{orient:'vertical',right:10,top:'center',icon:'circle',itemWidth:10,itemHeight:10,textStyle:{fontSize:12,color:'#666'}},
+            series:[{type:'pie',radius:['45%','72%'],center:['35%','50%'],avoidLabelOverlap:true,label:{show:false},emphasis:{label:{show:true,fontSize:14,fontWeight:'bold'},itemStyle:{shadowBlur:10,shadowOffsetX:0,shadowColor:'rgba(0,0,0,0.2)'}},data:pieData}]
+          });
+          resizePie = function(){if(pieChart)pieChart.resize();};
+          window.addEventListener('resize', resizePie);
+        }
+      }
+
+      function fetchAndRender() {
+        var today = new Date();
+        var todayStr = fmtDate(today);
+        var yest = new Date(today); yest.setDate(yest.getDate()-1);
+        var yestStr = fmtDate(yest);
+        var week = new Date(today); week.setDate(week.getDate()-6);
+        var weekStr = fmtDate(week);
+
+        var days = [];
+        for (var i=6;i>=0;i--) { var d=new Date(today); d.setDate(d.getDate()-i); days.push({label:('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2),date:fmtDate(d)}); }
+
+        var params = ' '; // space for URL encoding
+
+        Promise.all([
+          q('/api/goods/list?page=1&pageSize=1').then(function(d){return d.total||0;}),
+          q('/api/goods/list?page=1&pageSize=9999'),
+          q('/api/sale-order/list?page=1&pageSize=9999&saleTimeStart='+encodeURIComponent(weekStr+' 00:00:00')+'&saleTimeEnd='+encodeURIComponent(todayStr+' 23:59:59')),
+          q('/api/purchase-order/list?page=1&pageSize=9999&buyTimeStart='+encodeURIComponent(weekStr+' 00:00:00')+'&buyTimeEnd='+encodeURIComponent(todayStr+' 23:59:59')),
+          q('/api/goods/low-stock'),
+          q('/api/sale-order/list?page=1&pageSize=10'),
+        ]).then(function(data) {
+          var goodsTotal = data[0];
+          var allGoods = data[1];
+          var allSales = data[2];
+          var allPurchases = data[3];
+          var lowStock = data[4];
+          var recentSales = data[5];
+
+          var goodsList = allGoods.rows || [];
+          var stockValue = 0, categoryCount = {};
+          goodsList.forEach(function(g){
+            stockValue += (g.buyPrice||0)*(g.stockNum||0);
+            var cat = g.typeName || '未分类';
+            categoryCount[cat] = (categoryCount[cat]||0)+1;
+          });
+
+          var salesByDay = {}, purchaseByDay = {};
+          (allSales.rows||[]).forEach(function(o){
+            var d = o.saleTime ? o.saleTime.substring(0,10) : '';
+            if(d) salesByDay[d] = (salesByDay[d]||0)+(o.saleMoney||0);
+          });
+          (allPurchases.rows||[]).forEach(function(o){
+            var d = o.buyTime ? o.buyTime.substring(0,10) : '';
+            if(d) purchaseByDay[d] = (purchaseByDay[d]||0)+(o.totalMoney||0);
+          });
+
+          var todaySales = salesByDay[todayStr]||0;
+          var yestSales = salesByDay[yestStr]||0;
+          var todayPur = purchaseByDay[todayStr]||0;
+          var yestPur = purchaseByDay[yestStr]||0;
+
+          function trendStr(cur, prev) {
+            if(prev>0){ var p = ((cur-prev)/prev*100).toFixed(1); return p>=0 ? '<i class="fas fa-arrow-up"></i> 环比 +'+p+'%' : '<i class="fas fa-arrow-down"></i> 环比 '+p+'%'; }
+            return cur>0 ? '<i class="fas fa-arrow-up"></i> 新增' : '-';
+          }
+
+          // Update stat cards
+          var cards = document.querySelectorAll('.dp-card-num');
+          if(cards[0]) cards[0].textContent = goodsTotal;
+          if(cards[1]) cards[1].textContent = '¥'+stockValue.toLocaleString();
+          if(cards[2]) cards[2].textContent = '¥'+(todaySales||0).toLocaleString();
+          if(cards[3]) cards[3].textContent = '¥'+(todayPur||0).toLocaleString();
+
+          var trends = document.querySelectorAll('.dp-card-trend');
+          if(trends[0]){ trends[0].className='dp-card-trend up'; trends[0].innerHTML = '<i class="fas fa-cube"></i> 共 '+goodsTotal+' 种'; }
+          if(trends[1]){ trends[1].className='dp-card-trend up'; trends[1].innerHTML = '<i class="fas fa-boxes"></i> '+goodsList.length+' 种商品在库'; }
+          if(trends[2]){ trends[2].className = todaySales>=yestSales ? 'dp-card-trend up' : 'dp-card-trend down'; trends[2].innerHTML = trendStr(todaySales, yestSales); }
+          if(trends[3]){ trends[3].className = todayPur>=yestPur ? 'dp-card-trend up' : 'dp-card-trend down'; trends[3].innerHTML = trendStr(todayPur, yestPur); }
+
+          // Alert table
+          var lowList = Array.isArray(lowStock) ? lowStock : ((lowStock.rows||[]));
+          var ab = document.querySelector('#dpAlertTable tbody');
+          if(ab){
+            if(!lowList.length) ab.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#999;">暂无预警数据</td></tr>';
+            else ab.innerHTML = lowList.map(function(g){
+              var over = g.stockNum <= g.minStock;
+              return '<tr class="'+(over?'dp-row-danger':'')+'"><td>'+(g.id||'')+'</td><td class="dp-cell-name">'+(g.goodsName||'')+'</td><td>'+(g.typeName||'')+'</td><td class="'+(over?'dp-text-danger':'')+'">'+(g.stockNum||0)+'</td><td>'+(g.minStock||0)+'</td><td>'+(over?'<span class="dp-alert-badge"><i class="fas fa-exclamation-circle"></i> 库存不足，需补货</span>':'<span class="dp-alert-ok"><i class="fas fa-check-circle"></i> 正常</span>')+'</td></tr>';
+            }).join('');
+          }
+
+          // Orders table
+          var or = recentSales.rows || [];
+          var ob = document.querySelector('#dpOrderTable tbody');
+          if(ob){
+            if(!or.length) ob.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#999;">暂无订单数据</td></tr>';
+            else ob.innerHTML = or.map(function(o){
+              return '<tr><td><span class="dp-order-no">'+ (o.id||'') +'</span></td><td class="dp-cell-name">'+(o.goodsName||'')+'</td><td>'+(o.custName||'')+'</td><td>'+(o.saleNum||0)+'</td><td class="dp-text-money">¥'+((o.saleMoney||0).toLocaleString())+'</td><td>'+(o.saleTime||'')+'</td><td>'+statusLabel(o.status)+'</td></tr>';
+            }).join('');
+          }
+
+          // Chart data
+          var lineData = days.map(function(d){ return {label:d.label, sales:salesByDay[d.date]||0, purchase:purchaseByDay[d.date]||0}; });
+          var catData = Object.keys(categoryCount).map(function(n){ return {name:n, value:categoryCount[n]}; });
+          if(typeof echarts !== 'undefined') initCharts(lineData, catData);
+
+          var heroDate = document.getElementById('dpHeroDate');
+          if (heroDate) {
+            var w = ['日','一','二','三','四','五','六'];
+            heroDate.textContent = today.getFullYear() + '年' + (today.getMonth()+1) + '月' + today.getDate() + '日 · 星期' + w[today.getDay()];
+          }
+          var heroAlert = document.getElementById('dpHeroAlert');
+          if (heroAlert) {
+            var alertCount = Array.isArray(lowStock) ? lowStock.length : 0;
+            heroAlert.innerHTML = '<i class="fas fa-bell"></i> 库存预警 ' + (alertCount > 0 ? alertCount + ' 件' : '正常');
+            heroAlert.className = 'dp-pill ' + (alertCount > 0 ? 'dp-pill-alert' : 'dp-pill-ok');
+          }
+        }).catch(function(err){
+          console.error('Dashboard数据加载失败:',err);
+          document.querySelectorAll('.dp-card-trend').forEach(function(el){ el.innerHTML='加载失败'; });
+        });
+      }
+
+      function enhance() {
+        var sc = document.querySelector('.stat-card');
+        if (!sc) return;
+        if (sc.closest('.dash-pro')) return;
+        var row = sc.parentElement;
+        if (!row) return;
+        var dashContent = row.parentElement;
+        if (!dashContent) return;
+        dashContent.innerHTML = HTML;
+        dashContent.classList.add('dash-pro');
+        fetchAndRender();
+      }
+
+      var dashEnhanced = false;
+      var dashTimer = null;
+
+      function tryEnhanceDashboard() {
+        var sc = document.querySelector('.stat-card');
+        if (!sc || sc.closest('.dash-pro')) return;
+        if (dashEnhanced) return;
+        dashEnhanced = true;
+        enhance();
+      }
+
+      function scheduleDashboardCheck() {
+        if (dashTimer) cancelAnimationFrame(dashTimer);
+        dashTimer = requestAnimationFrame(function() {
+          if (document.querySelector('.dash-pro')) {
+            dashEnhanced = true;
+            return;
+          }
+          if (document.querySelector('.stat-card')) {
+            dashEnhanced = false;
+            tryEnhanceDashboard();
+          } else {
+            dashEnhanced = false;
+          }
+        });
+      }
+
+      function startWatch() {
+        var app = document.getElementById('app');
+        if (!app) return;
+        var obs = new MutationObserver(function() {
+          scheduleDashboardCheck();
+        });
+        obs.observe(app, { childList: true, subtree: true });
+        scheduleDashboardCheck();
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startWatch);
+      else startWatch();
+    })();
+  </script>
+  <script>
+    // ===== 隐藏商品表单中的库存数量字段（仅弹窗打开时处理，避免拖慢路由切换） =====
+    (function() {
+      var stockTimer = null;
+
+      function hideStockNumField() {
+        var dialogs = document.querySelectorAll('.el-dialog:not([data-erp-stock-hidden])');
+        if (!dialogs.length) return;
+        dialogs.forEach(function(dlg) {
+          var changed = false;
+          var labels = dlg.querySelectorAll('.el-form-item__label');
+          labels.forEach(function(lbl) {
+            if (lbl.textContent && lbl.textContent.indexOf('库存') >= 0) {
+              var col = lbl.closest('.el-col');
+              if (col && col.style.display !== 'none') {
+                col.style.display = 'none';
+                changed = true;
+              }
+              var row = col ? col.parentElement : null;
+              if (row) {
+                var visibleCount = 0;
+                var lastVisible = null;
+                row.querySelectorAll('.el-col').forEach(function(c) {
+                  if (c.style.display !== 'none') { visibleCount++; lastVisible = c; }
+                });
+                if (visibleCount === 1 && lastVisible) {
+                  lastVisible.style.width = '100%';
+                  lastVisible.style.maxWidth = '100%';
+                  lastVisible.style.flex = '0 0 100%';
+                }
+              }
+            }
+          });
+          if (changed) dlg.setAttribute('data-erp-stock-hidden', '1');
+        });
+      }
+
+      function scheduleStockHide() {
+        if (stockTimer) clearTimeout(stockTimer);
+        stockTimer = setTimeout(hideStockNumField, 300);
+      }
+
+      function startStockWatch() {
+        var obs = new MutationObserver(function(mutations) {
+          for (var i = 0; i < mutations.length; i++) {
+            var nodes = mutations[i].addedNodes;
+            for (var j = 0; j < nodes.length; j++) {
+              var n = nodes[j];
+              if (n.nodeType !== 1) continue;
+              if (n.classList && n.classList.contains('el-dialog')) {
+                scheduleStockHide();
+                return;
+              }
+              if (n.querySelector && n.querySelector('.el-dialog')) {
+                scheduleStockHide();
+                return;
+              }
+            }
+          }
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startStockWatch);
+      } else {
+        startStockWatch();
+      }
+    })();
+  </script>
+  <script>
+    // Compatibility shim: older front-end bundles may still request /user,
+    // while the current back-end exposes /users.
+    (function() {
+      function rewriteUserApi(url) {
+        if (typeof url !== 'string') return url;
+        return url
+          .replace(/\/api\/user\/list(?=\?|$)/g, '/api/users')
+          .replace(/\/api\/users\/list(?=\?|$)/g, '/api/users')
+          .replace(/\/user\/list(?=\?|$)/g, '/users')
+          .replace(/\/users\/list(?=\?|$)/g, '/users')
+          .replace(/\/api\/user(?=\/|\?|$)/g, '/api/users')
+          .replace(/(^|[^a-zA-Z])\/user(?=\/|\?|$)/g, function(match, prefix) {
+            return prefix + '/users';
+          });
+      }
+
+      var originalFetch = window.fetch;
+      if (typeof originalFetch === 'function') {
+        window.fetch = function(resource, init) {
+          if (typeof resource === 'string') {
+            resource = rewriteUserApi(resource);
+          } else if (resource && typeof resource.url === 'string') {
+            resource = rewriteUserApi(resource.url);
+          }
+          return originalFetch.call(this, resource, init);
+        };
+      }
+
+      var originalOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, url) {
+        if (typeof url === 'string') {
+          url = rewriteUserApi(url);
+        }
+        return originalOpen.apply(this, [method, url].concat(Array.prototype.slice.call(arguments, 2)));
+      };
+    })();
+  </script>
+  <script>
+    // 表格列样式：参考桌面模板 ERP进销存管理系统.html（保留隐藏 ID 列，不学模板展示 ID）
+    (function() {
+      var COL_WIDTH = {
+        'erp-col-name': 118,
+        'erp-col-img': 72,
+        'erp-col-type': 88,
+        'erp-col-money': 92,
+        'erp-col-sale-money': 92,
+        'erp-col-num': 108,
+        'erp-col-remark': 88,
+        'erp-col-time': 154,
+        'erp-col-status': 84,
+        'erp-col-action': 156,
+        'erp-col-code': 96,
+        'erp-col-phone': 118,
+        'erp-col-contact': 88,
+        'erp-col-email': 130,
+        'erp-col-addr': 120
+      };
+
+      function classifyColumn(label) {
+        if (!label) return '';
+        if (/操作/.test(label)) return 'erp-col-action';
+        if (/编号|单号|订单号/.test(label)) return 'erp-col-code';
+        if (/销售/.test(label) && /金额|总额/.test(label)) return 'erp-col-sale-money';
+        if (/金额|总额|进价|售价|单价|价格/.test(label) && !/数量/.test(label)) return 'erp-col-money';
+        if (/数量|库存/.test(label)) return 'erp-col-num';
+        if (/状态/.test(label)) return 'erp-col-status';
+        if (/图片|图像|封面/.test(label)) return 'erp-col-img';
+        if (/类别|分类|类型/.test(label)) return 'erp-col-type';
+        if (/备注|说明/.test(label)) return 'erp-col-remark';
+        if (/时间|日期/.test(label)) return 'erp-col-time';
+        if (/电话|手机/.test(label)) return 'erp-col-phone';
+        if (/邮箱|邮件/.test(label)) return 'erp-col-email';
+        if (/地址/.test(label)) return 'erp-col-addr';
+        if (/联系人|负责人/.test(label)) return 'erp-col-contact';
+        if (/商品|客户|供应商|名称|姓名/.test(label)) return 'erp-col-name';
+        return '';
+      }
+
+      function stripColClasses(el) {
+        Array.from(el.classList).forEach(function(c) {
+          if (c.indexOf('erp-col-') === 0) el.classList.remove(c);
+        });
+      }
+
+      function applyColWidths(table, colClasses) {
+        table.querySelectorAll('colgroup').forEach(function(cg) {
+          cg.querySelectorAll('col').forEach(function(col, idx) {
+            if (idx === 0) {
+              col.style.width = '0px';
+              return;
+            }
+            var w = COL_WIDTH[colClasses[idx]];
+            if (w) col.style.width = w + 'px';
+          });
+        });
+      }
+
+      function enhanceTableColumns() {
+        document.querySelectorAll('.el-table').forEach(function(table) {
+          var headers = table.querySelectorAll('.el-table__header th.el-table__cell');
+          if (!headers.length) return;
+
+          var colClasses = table.__erpColClasses;
+          if (!colClasses || colClasses.length !== headers.length) {
+            colClasses = [];
+            headers.forEach(function(th, idx) {
+              if (idx === 0) {
+                colClasses[idx] = '';
+                return;
+              }
+              var label = (th.textContent || '').replace(/\s+/g, '').trim();
+              var cls = classifyColumn(label);
+              colClasses[idx] = cls || '';
+              if (cls && !th.classList.contains(cls)) {
+                stripColClasses(th);
+                th.classList.add(cls);
+              }
+            });
+            table.__erpColClasses = colClasses;
+            applyColWidths(table, colClasses);
+          }
+
+          table.querySelectorAll('.el-table__body td.el-table__cell').forEach(function(td) {
+            var cls = colClasses[td.cellIndex];
+            if (cls && !td.classList.contains(cls)) {
+              stripColClasses(td);
+              td.classList.add(cls);
+            }
+          });
+
+          table.setAttribute('data-erp-ready', '1');
+        });
+      }
+
+      var tableRaf = null;
+      function scheduleTableEnhance() {
+        if (tableRaf) cancelAnimationFrame(tableRaf);
+        tableRaf = requestAnimationFrame(enhanceTableColumns);
+      }
+
+      function startTableEnhance() {
+        var app = document.getElementById('app');
+        if (!app) return;
+        var obs = new MutationObserver(function(mutations) {
+          for (var i = 0; i < mutations.length; i++) {
+            var target = mutations[i].target;
+            if (target && target.nodeType === 1) {
+              if (target.classList && (target.classList.contains('el-table') ||
+                  target.classList.contains('el-table__body') ||
+                  target.classList.contains('el-table__header'))) {
+                scheduleTableEnhance();
+                return;
+              }
+            }
+            var nodes = mutations[i].addedNodes;
+            for (var j = 0; j < nodes.length; j++) {
+              var n = nodes[j];
+              if (n.nodeType !== 1) continue;
+              if ((n.classList && (n.classList.contains('el-table') || n.classList.contains('el-table__body-wrapper'))) ||
+                  (n.querySelector && n.querySelector('.el-table'))) {
+                scheduleTableEnhance();
+                return;
+              }
+            }
+          }
+        });
+        obs.observe(app, { childList: true, subtree: true });
+        scheduleTableEnhance();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startTableEnhance);
+      } else {
+        startTableEnhance();
+      }
+    })();
+  </script>
+  <script>
+    // 修复分页文案：占位符显示为 ?（如 10每?页 → 10 条/页）
+    (function() {
+      function normalizePageText(text) {
+        if (!text) return text;
+        return text
+          .replace(/共\s*[\{?\uFFFD]?\s*(\d+)\s*[\}?\uFFFD]?\s*条(?:记录)?/g, '共 $1 条记录')
+          .replace(/(\d+)\s*每\s*[\{?\uFFFD/]?\s*页/g, '$1 条/页')
+          .replace(/(\d+)每[^\d条/]{0,6}页/g, '$1 条/页')
+          .replace(/(\d+)\s*[\{?\uFFFD]?\s*条\s*\/\s*页/g, '$1 条/页');
+      }
+
+      function fixTextInRoot(root) {
+        if (!root) return;
+        var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+        var node;
+        while ((node = walker.nextNode())) {
+          var t = node.textContent;
+          if (!t || (t.indexOf('?') === -1 && t.indexOf('{') === -1 && t.indexOf('每') === -1 && t.indexOf('\uFFFD') === -1)) continue;
+          var fixed = normalizePageText(t);
+          if (fixed !== t) node.textContent = fixed;
+        }
+      }
+
+      function bindPagination(pg) {
+        if (pg.__erpPgBound) return;
+        pg.__erpPgBound = true;
+        fixTextInRoot(pg);
+        var obs = new MutationObserver(function() {
+          fixTextInRoot(pg);
+        });
+        obs.observe(pg, { childList: true, subtree: true, characterData: true });
+      }
+
+      function bindSelectDropdown(dd) {
+        if (dd.__erpPgBound) return;
+        dd.__erpPgBound = true;
+        fixTextInRoot(dd);
+        var obs = new MutationObserver(function() {
+          fixTextInRoot(dd);
+        });
+        obs.observe(dd, { childList: true, subtree: true, characterData: true });
+      }
+
+      function scanPagination() {
+        document.querySelectorAll('.el-pagination').forEach(bindPagination);
+        document.querySelectorAll('.el-select-dropdown').forEach(function(dd) {
+          var inPg = dd.closest('.el-pagination');
+          var prev = dd.previousElementSibling;
+          var nearPg = prev && prev.classList && prev.classList.contains('el-pagination__sizes');
+          if (inPg || nearPg || dd.querySelector('.el-select-dropdown__item')) {
+            bindSelectDropdown(dd);
+          }
+        });
+      }
+
+      var pgTimer = null;
+      function scheduleScan() {
+        if (pgTimer) clearTimeout(pgTimer);
+        pgTimer = setTimeout(scanPagination, 50);
+      }
+
+      function startPaginationFix() {
+        var app = document.getElementById('app');
+        if (app) {
+          new MutationObserver(function(mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+              var nodes = mutations[i].addedNodes;
+              for (var j = 0; j < nodes.length; j++) {
+                var n = nodes[j];
+                if (n.nodeType !== 1) continue;
+                if (n.classList && (n.classList.contains('el-pagination') || n.classList.contains('el-select-dropdown'))) {
+                  scheduleScan();
+                  return;
+                }
+                if (n.querySelector && (n.querySelector('.el-pagination') || n.querySelector('.el-select-dropdown'))) {
+                  scheduleScan();
+                  return;
+                }
+              }
+            }
+          }).observe(app, { childList: true, subtree: true });
+        }
+        new MutationObserver(function(mutations) {
+          for (var i = 0; i < mutations.length; i++) {
+            var nodes = mutations[i].addedNodes;
+            for (var j = 0; j < nodes.length; j++) {
+              var n = nodes[j];
+              if (n.nodeType === 1 && n.classList && n.classList.contains('el-select-dropdown')) {
+                scheduleScan();
+                return;
+              }
+            }
+          }
+        }).observe(document.body, { childList: true });
+        scheduleScan();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startPaginationFix);
+      } else {
+        startPaginationFix();
+      }
+    })();
+  </script>
+  <script type="module" crossorigin src="./assets/index-Bat4tn6o.js"></script>
+</head>
+<body class="erp-workspace">
+  <div id="app"></div>
+  <script>
+    (function() {
+      var PAGES = [
+        { key: 'home', match: ['首页', '仪表盘', '数据'] },
+        { key: 'goods', match: ['商品管理', '商品分类', '商品'] },
+        { key: 'purchase', match: ['采购'] },
+        { key: 'sale', match: ['销售'] },
+        { key: 'customer', match: ['客户'] },
+        { key: 'supplier', match: ['供应商'] },
+        { key: 'user', match: ['用户'] },
+        { key: 'ai', match: ['AI', '助手', '智能'] }
+      ];
+      var AI_SUGGESTIONS = [
+        '查询所有用户',
+        '查询所有商品',
+        '库存低于50的商品有哪些',
+        '查询所有供应商',
+        '查询所有客户'
+      ];
+      var timer = null;
+      var aiTimer = null;
+
+      function detectPage() {
+        var active = document.querySelector('.sidebar-menu .el-menu-item.is-active');
+        var page = 'other';
+        if (active) {
+          var text = (active.textContent || '').replace(/\d+/g, '').trim();
+          for (var i = 0; i < PAGES.length; i++) {
+            var p = PAGES[i];
+            for (var j = 0; j < p.match.length; j++) {
+              if (text.indexOf(p.match[j]) >= 0) { page = p.key; break; }
+            }
+            if (page !== 'other') break;
+          }
+        }
+        document.body.setAttribute('data-page', page);
+
+        var band = document.querySelector('.erp-page-band');
+        if (band) band.remove();
+
+        var title = document.querySelector('.header h2');
+        if (title) {
+          title.className = 'erp-header-title erp-header-title--' + page;
+        }
+      }
+
+      function onRouteMutation() {
+        detectPage();
+        if (aiTimer) clearTimeout(aiTimer);
+        aiTimer = setTimeout(enhanceAIChat, 0);
+      }
+
+      function schedule() {
+        if (timer) cancelAnimationFrame(timer);
+        timer = requestAnimationFrame(onRouteMutation);
+      }
+
+      function start() {
+        var app = document.getElementById('app');
+        if (!app) return;
+        new MutationObserver(function(mutations) {
+          var needDetect = false;
+          for (var i = 0; i < mutations.length; i++) {
+            if (mutations[i].type === 'childList') { needDetect = true; break; }
+          }
+          if (!needDetect) return;
+          schedule();
+        }).observe(app, { childList: true, subtree: true });
+        detectPage();
+      }
+
+      function fillChatInput(text) {
+        var input = document.querySelector('.chat-container .el-input__inner');
+        if (!input) return;
+        var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+        if (setter && setter.set) {
+          setter.set.call(input, text);
+        } else {
+          input.value = text;
+        }
+        input.dispatchEvent(new InputEvent('input', { bubbles: true }));
+        input.focus();
+      }
+
+      function enhanceAIChat() {
+        if (document.body.getAttribute('data-page') !== 'ai') return;
+        var container = document.querySelector('.chat-container');
+        if (!container || container.dataset.enhanced === '1') return;
+        var messages = container.querySelector('.chat-messages');
+        if (!messages) return;
+
+        var inputArea = null;
+        for (var i = 0; i < container.children.length; i++) {
+          if (container.children[i] !== messages) {
+            inputArea = container.children[i];
+            break;
+          }
+        }
+        if (!inputArea) return;
+
+        container.dataset.enhanced = '1';
+        container.classList.add('chat-shell');
+        container.style.display = 'block';
+        container.style.height = 'auto';
+
+        var grid = document.createElement('div');
+        grid.className = 'chat-shell-grid';
+
+        var aside = document.createElement('aside');
+        aside.className = 'chat-aside';
+        aside.innerHTML = '<div class="chat-aside-title"><i class="fas fa-wand-magic-sparkles"></i> 快捷提问</div><div class="chat-aside-list"></div><p class="chat-aside-tip">点击示例可填入输入框，回车发送</p>';
+        var list = aside.querySelector('.chat-aside-list');
+        AI_SUGGESTIONS.forEach(function(q) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'chat-suggest-chip';
+          btn.textContent = q;
+          btn.addEventListener('click', function() { fillChatInput(q); });
+          list.appendChild(btn);
+        });
+
+        var main = document.createElement('div');
+        main.className = 'chat-main';
+        inputArea.classList.add('chat-input-bar');
+
+        container.removeChild(messages);
+        container.removeChild(inputArea);
+        main.appendChild(messages);
+        main.appendChild(inputArea);
+        grid.appendChild(aside);
+        grid.appendChild(main);
+        container.appendChild(grid);
+
+        var welcome = messages.querySelector('.msg.assistant');
+        if (welcome) welcome.classList.add('chat-welcome-hidden');
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+      else start();
+    })();
+  </script>
+</body>
+</html>

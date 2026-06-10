@@ -1,0 +1,17 @@
+# 构建产物
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 日志与临时文件
+*.log
+cp.txt
+
+# 本地私密配置（不要提交真实密钥）
+application-local.yaml
+.env
+.env.*
+

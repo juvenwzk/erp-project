@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ERP 进销存管理系统</title>
+  <script>
+    // ===== 登录鉴权检查 =====
+    (function() {
+      try {
+        var loginStr = localStorage.getItem('erp_login');
+        if (!loginStr) {
+          window.location.replace('./login.html');
+          return;
+        }
+        var info = JSON.parse(loginStr);
+        // 旧数据没有 role — 清掉重新登录
+        if (!info || info.token === undefined || info.role === undefined || info.role === null) {
+          localStorage.removeItem('erp_login');
+          localStorage.removeItem('erp_username');
+          window.location.replace('./login.html');
+          return;
+        }
+      } catch(e) {
+        localStorage.removeItem('erp_login');
+        localStorage.removeItem('erp_username');
+        window.location.replace('./login.html');
+      }
+    })();
+
+    // 提供一个全局函数供 Vue SPA 获取当前登录用户
+    window.__getLoginUser = function() {
+      try {
+        var str = localStorage.getItem('erp_login');
+        if (str) return JSON.parse(str);
+      } catch(e) {}
+      return null;
+    };
+    window.__getUsername = function() {
+      try {
+        return localStorage.getItem('erp_username') || '';
+      } catch(e) { return ''; }
+    };
+  </script>
+  <script type="module" crossorigin src="./assets/index-Bat4tn6o.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CMpYOR6T.css">
+</head>
+<body>
+  <div id="app"></div>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kangcode.Mapper.UserMapper">
+
+    <resultMap id="userMap" type="com.kangcode.pojo.User">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="name" column="name"/>
+        <result property="gender" column="gender"/>
+        <result property="phone" column="phone"/>
+        <result property="email" column="email"/>
+        <result property="role" column="role"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <insert id="insertById">
+        insert into user(username,password,name,gender,phone,email,role,
+                         create_time,update_time)
+        values(#{username},#{password},#{name},#{gender},#{phone},#{email},#{role},
+               now(),now())
+    </insert>
+    <update id="updateById">
+       update user
+        <set>
+            <if test="username!=null and username !=''">
+                username=#{username},
+            </if>
+            <if test="password != null and password != ''">
+                password = #{password},
+            </if>
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="gender != null">
+                gender = #{gender},
+            </if>
+            <if test="phone != null and phone != ''">
+                phone = #{phone},
+            </if>
+            <if test="email != null and email != ''">
+                email = #{email},
+            </if>
+            <if test="role != null">
+                role = #{role},
+            </if>
+            update_time = now()
+        </set>
+        where id=#{id}
+    </update>
+    <delete id="delete">
+       delete from user where id in
+       <foreach item="id" collection="ids" separator="," close=")" open="(">
+           #{id}
+       </foreach>
+    </delete>
+
+    <select id="getById" resultMap="userMap">
+        select * from user where id=#{id}
+    </select>
+    <select id="list" resultMap="userMap">
+        select u.* from user u
+        <where>
+            <if test="name!=null and name!=''">
+                and u.name like concat('%',#{name},'%')
+            </if>
+            <if test="gender!=null">
+                and u.gender=#{gender}
+            </if>
+            <if test="phone!=null and phone!=''">
+                and u.phone like concat('%',#{phone},'%')
+            </if>
+            <if test="role!=null and role!=''">
+                and u.role= #{role}
+            </if>
+        </where>
+        order by id asc
+    </select>
+
+    <select id="selectByUsername" resultType="com.kangcode.pojo.User">
+        select * from user where username=#{username}
+    </select>
+
+</mapper>

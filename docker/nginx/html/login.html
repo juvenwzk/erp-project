@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>登录 · ERP 进销存</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --accent: #f59e0b;
+      --accent-hover: #d97706;
+      --ink: #1c1917;
+      --muted: #78716c;
+    }
+
+    body {
+      font-family: 'Outfit', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      background: #fafaf9;
+    }
+
+    /* 左侧：品牌门户（暖色、营销感） */
+    .brand-panel {
+      flex: 1.1;
+      min-height: 100vh;
+      background: var(--ink);
+      color: #fafaf9;
+      padding: 48px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .brand-panel::before {
+      content: '';
+      position: absolute;
+      width: 560px;
+      height: 560px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.28) 0%, transparent 68%);
+      top: -140px;
+      right: -120px;
+      pointer-events: none;
+    }
+
+    .brand-panel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 80%);
+      pointer-events: none;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      padding: 7px 16px;
+      border-radius: 999px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-badge i {
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.85); }
+    }
+
+    .brand-content {
+      position: relative;
+      z-index: 1;
+      max-width: 440px;
+    }
+
+    .brand-content h1 {
+      font-size: clamp(2rem, 3.8vw, 3rem);
+      font-weight: 700;
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      margin-top: 32px;
+    }
+
+    .brand-content h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .brand-content p {
+      margin-top: 22px;
+      font-size: 16px;
+      line-height: 1.75;
+      color: #a8a29e;
+    }
+
+    .brand-features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 40px;
+    }
+
+    .brand-feature {
+      padding: 18px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .brand-feature strong {
+      display: block;
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .brand-feature span {
+      font-size: 12px;
+      color: #78716c;
+    }
+
+    .brand-footer {
+      font-size: 12px;
+      color: #57534e;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 右侧：登录表单（简洁白底） */
+    .login-panel {
+      width: 460px;
+      max-width: 100%;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 36px;
+      background: #fff;
+      box-shadow: -12px 0 48px rgba(28, 25, 23, 0.07);
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .login-box .welcome h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+
+    .login-box .welcome p {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .login-box .welcome {
+      margin-bottom: 36px;
+    }
+
+    .form-group {
+      margin-bottom: 22px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #44403c;
+      margin-bottom: 8px;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: #a8a29e;
+      pointer-events: none;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 13px 14px 13px 44px;
+      border: 1.5px solid #e7e5e4;
+      border-radius: 11px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fafaf9;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+
+    .form-group input:focus {
+      border-color: var(--accent);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.14);
+    }
+
+    .form-group input.error {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+    }
+
+    .error-msg {
+      color: #b91c1c;
+      font-size: 13px;
+      margin-bottom: 16px;
+      padding: 10px 12px;
+      background: #fef2f2;
+      border-radius: 9px;
+      border: 1px solid #fecaca;
+      display: none;
+    }
+
+    .error-msg:not(:empty) { display: block; }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      margin-top: 6px;
+      background: var(--accent);
+      color: #1c1917;
+      border: none;
+      border-radius: 11px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.38);
+    }
+
+    .login-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 6px 22px rgba(245, 158, 11, 0.45);
+    }
+
+    .login-btn:active:not(:disabled) { transform: scale(0.98); }
+
+    .login-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .login-hint {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: #a8a29e;
+      line-height: 1.6;
+    }
+
+    .login-hint b {
+      color: #75adbe;
+      font-weight: 600;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(28, 25, 23, 0.2);
+      border-top-color: #1c1917;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 960px) {
+      body { flex-direction: column; }
+      .brand-panel { min-height: auto; padding: 32px 28px 28px; }
+      .brand-features { grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+      .brand-feature { padding: 14px 12px; }
+      .brand-footer { display: none; }
+      .login-panel {
+        width: 100%;
+        min-height: auto;
+        box-shadow: none;
+        border-top: 1px solid #e7e5e4;
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside class="brand-panel">
+    <div class="brand-badge"><i></i> 进销存一体化平台</div>
+    <div class="brand-content">
+      <h1>管好库存，<em>理清账</em></h1>
+      <p>采购、销售、库存一站打通。这里是系统入口；登录后将进入<strong style="color:#d6d3d1;font-weight:500;">雾蓝工作台</strong>，风格与登录页完全不同，便于区分门户与业务环境。</p>
+      <div class="brand-features">
+        <div class="brand-feature"><strong>进</strong><span>采购入库</span></div>
+        <div class="brand-feature"><strong>销</strong><span>销售出库</span></div>
+        <div class="brand-feature"><strong>存</strong><span>实时库存</span></div>
+      </div>
+    </div>
+    <div class="brand-footer">© ERP 进销存管理系统</div>
+  </aside>
+
+  <main class="login-panel">
+    <div class="login-box">
+      <div class="welcome">
+        <h2>欢迎回来</h2>
+        <p>请输入账号密码登录系统</p>
+      </div>
+      <div class="error-msg" id="errorMsg"></div>
+      <form id="loginForm" onsubmit="return false;">
+        <div class="form-group">
+          <label for="username">用户名</label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="username" placeholder="admin / staff" autocomplete="username" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="password">密码</label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password" />
+          </div>
+        </div>
+        <button type="submit" class="login-btn" id="loginBtn" onclick="handleLogin()">进入工作台</button>
+      </form>
+      <p class="login-hint">登录后进入 <b>雾蓝主题</b> 业务后台，与当前页面视觉区分</p>
+    </div>
+  </main>
+
+  <script>
+    (function() {
+      try {
+        const stored = localStorage.getItem('erp_login');
+        if (stored) {
+          const info = JSON.parse(stored);
+          if (info && info.token !== undefined && info.role !== undefined && info.role !== null) {
+            window.location.replace('/');
+          } else {
+            localStorage.removeItem('erp_login');
+            localStorage.removeItem('erp_username');
+            localStorage.removeItem('ai_chat');
+          }
+        }
+      } catch(e) {
+        localStorage.removeItem('erp_login');
+        localStorage.removeItem('erp_username');
+        localStorage.removeItem('ai_chat');
+      }
+    })();
+
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
+    usernameEl.value = '';
+    passwordEl.value = '';
+    setTimeout(function() { usernameEl.value = ''; passwordEl.value = ''; }, 100);
+
+    const errorMsgEl = document.getElementById('errorMsg');
+    const loginBtnEl = document.getElementById('loginBtn');
+
+    passwordEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleLogin(); });
+    usernameEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') passwordEl.focus(); });
+
+    async function handleLogin() {
+      const username = usernameEl.value.trim();
+      const password = passwordEl.value.trim();
+      errorMsgEl.textContent = '';
+      usernameEl.classList.remove('error');
+      passwordEl.classList.remove('error');
+
+      if (!username) {
+        errorMsgEl.textContent = '请输入用户名';
+        usernameEl.classList.add('error');
+        usernameEl.focus();
+        return;
+      }
+      if (!password) {
+        errorMsgEl.textContent = '请输入密码';
+        passwordEl.classList.add('error');
+        passwordEl.focus();
+        return;
+      }
+
+      loginBtnEl.disabled = true;
+      loginBtnEl.innerHTML = '<span class="loading-spinner"></span>登录中...';
+
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        let result, cloned;
+        try {
+          cloned = response.clone();
+          result = await response.json();
+        } catch (e) {
+          let text;
+          try { text = await cloned.text(); } catch (e2) { text = response.status + ' ' + response.statusText; }
+          throw new Error(text || '服务器返回格式异常');
+        }
+
+        if (result.code === 200 && result.data) {
+          const loginInfo = result.data;
+          localStorage.setItem('erp_username', loginInfo.name || loginInfo.username);
+          localStorage.setItem('erp_login', JSON.stringify(loginInfo));
+          window.location.href = '/';
+        } else {
+          errorMsgEl.textContent = result.message || '用户名或密码错误';
+          passwordEl.value = '';
+          passwordEl.focus();
+        }
+      } catch (err) {
+        errorMsgEl.textContent = '网络错误：' + err.message;
+      } finally {
+        loginBtnEl.disabled = false;
+        loginBtnEl.textContent = '进入工作台';
+      }
+    }
+  </script>
+</body>
+</html>
