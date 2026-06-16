@@ -23,4 +23,18 @@ public class PurchaseQueryParam {
     private LocalDateTime buyTimeStart;
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime buyTimeEnd;
+
+    /** 与前端 purchaseTimeStart/End 对齐 */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime purchaseTimeStart;
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime purchaseTimeEnd;
+
+    public LocalDateTime getBuyTimeStart() {
+        return buyTimeStart != null ? buyTimeStart : purchaseTimeStart;
+    }
+
+    public LocalDateTime getBuyTimeEnd() {
+        return buyTimeEnd != null ? buyTimeEnd : purchaseTimeEnd;
+    }
 }

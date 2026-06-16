@@ -20,6 +20,7 @@ public class PurchaseOrder {
     private Integer status;
     private String goodsName;
     private String supplierName;
+    private String userName;
 
     private LocalDateTime buyTime;
     private LocalDateTime createTime;

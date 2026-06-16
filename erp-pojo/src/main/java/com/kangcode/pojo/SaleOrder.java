@@ -20,6 +20,7 @@ public class SaleOrder {
     private Integer status;
     private String goodsName;
     private String custName;
+    private String userName;
 
     private LocalDateTime saleTime;
     private LocalDateTime createTime;
