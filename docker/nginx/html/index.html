@@ -137,7 +137,11 @@
             if (info && info.token) headers['Authorization'] = 'Bearer ' + info.token;
           }
         } catch(e) {}
-        return fetch(url, { headers: headers }).then(function(r){return r.json();}).then(function(r){if(r.code===200)return r.data;throw Error(r.message);});
+        return fetch(url, { headers: headers }).then(function(r){return r.json();}).then(function(r){
+          if(r.code===200)return r.data;
+          var msg = (typeof window.__resolveApiError === 'function') ? window.__resolveApiError(r) : r.message;
+          throw Error(msg || '请求失败');
+        });
       }
 
       function statusLabel(s) {
@@ -710,6 +714,7 @@
       }
     })();
   </script>
+  <script src="./assets/erp-api-util.js"></script>
   <script type="module" crossorigin src="./assets/index-Bat4tn6o.js"></script>
 </head>
 <body class="erp-workspace">

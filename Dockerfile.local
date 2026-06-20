@@ -1,0 +1,9 @@
+# 本地开发：使用已 mvn package 的 jar，无需拉取 Maven 基础镜像
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+
+COPY erp-server/target/erp-server-1.0-SNAPSHOT.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=docker"]
