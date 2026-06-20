@@ -361,6 +361,7 @@
     </div>
   </main>
 
+  <script src="./assets/erp-api-util.js"></script>
   <script>
     (function() {
       try {
@@ -440,7 +441,9 @@
           localStorage.setItem('erp_login', JSON.stringify(loginInfo));
           window.location.href = '/';
         } else {
-          errorMsgEl.textContent = result.message || '用户名或密码错误';
+          errorMsgEl.textContent = window.__resolveApiError
+            ? window.__resolveApiError(result, '用户名或密码错误')
+            : (result.message || '用户名或密码错误');
           passwordEl.value = '';
           passwordEl.focus();
         }
