@@ -46,10 +46,14 @@ cp .env.example .env
 编辑 `.env`：
 
 ```env
-MYSQL_ROOT_PASSWORD=123456
+MYSQL_USER=ERP_USER
+MYSQL_PASSWORD=你的强密码
+MYSQL_ROOT_PASSWORD=你的强密码
 MYSQL_DATABASE=erp
 DEEPSEEK_API_KEY=你的DeepSeek密钥   # 不用 AI 可留空
 ```
+
+应用连接数据库使用 **`ERP_USER` 业务账号**，不再使用 root。若之前已用其他用户跑过 Docker，需执行一次 `docker compose down -v` 后重新 `up` 以创建新用户。
 
 ### 3. 启动
 
@@ -119,26 +123,26 @@ docker compose up -d --build
 
 ### 2. 配置
 
-编辑 `erp-server/src/main/resources/application.yaml` 中的数据库连接，或新建（勿提交 Git）：
+**方式 A（推荐）**：复制本地私密配置（已 gitignore，不会提交）：
 
-`erp-server/src/main/resources/application-local.yaml`
-
-```yaml
-spring:
-  datasource:
-    password: 你的密码
-  ai:
-    openai:
-      api-key: 你的DeepSeek密钥
+```powershell
+copy erp-server\src\main\resources\application-local.yaml.example erp-server\src\main\resources\application-local.yaml
 ```
 
-启动时加：`--spring.profiles.active=local`
+编辑 `application-local.yaml` 中的 `password`，与 MySQL 里 `ERP_USER` 的密码一致。启动时会自动加载。
+
+**方式 B**：在 IDEA 运行配置 **Environment variables** 中设置：
+
+```
+MYSQL_USER=ERP_USER;MYSQL_PASSWORD=你的密码;MYSQL_DATABASE=erp
+```
+
+若本地尚未创建 `ERP_USER`，用 root 执行 [`scripts/sql/create_erp_user.sql`](scripts/sql/create_erp_user.sql)（执行前请修改脚本中的密码）。该用户仅拥有 `erp` 库的 **SELECT / INSERT / UPDATE / DELETE**，不能建表、删库或授权。
 
 ### 3. 启动后端
 
 ```powershell
 $env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
-$env:DEEPSEEK_API_KEY = "你的密钥"
 cd erp-project
 mvn clean package -Dmaven.test.skip=true
 java -jar erp-server/target/erp-server-1.0-SNAPSHOT.jar

@@ -1,5 +1,7 @@
 package com.kangcode.pojo;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.kangcode.pojo.jackson.LenientLocalDateTimeDeserializer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,6 +24,7 @@ public class SaleOrder {
     private String custName;
     private String userName;
 
+    @JsonDeserialize(using = LenientLocalDateTimeDeserializer.class)
     private LocalDateTime saleTime;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
