@@ -1,0 +1,9 @@
+-- 本地 MySQL：业务账号 ERP_USER，仅 erp 库的增删改查（最小权限）
+USE erp;
+
+CREATE USER IF NOT EXISTS 'ERP_USER'@'localhost' IDENTIFIED BY '123456';
+
+REVOKE ALL PRIVILEGES ON `erp`.* FROM 'ERP_USER'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON `erp`.* TO 'ERP_USER'@'localhost';
+
+FLUSH PRIVILEGES;
