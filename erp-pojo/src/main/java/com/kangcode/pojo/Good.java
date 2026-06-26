@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -23,4 +24,11 @@ public class Good {
 
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+
+    /** 关联供应商ID（查询/保存时使用） */
+    private List<Integer> supplierIds;
+    /** 关联供应商详情（查询时使用） */
+    private List<Supplier> suppliers;
+    /** 关联供应商名称（列表回显，逗号/顿号分隔） */
+    private String supplierNames;
 }

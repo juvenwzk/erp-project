@@ -4,10 +4,10 @@ services:
     container_name: erp-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-erp}
       MYSQL_USER: ${MYSQL_USER:-ERP_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
       TZ: Asia/Shanghai
     volumes:
       - mysql_data:/var/lib/mysql
@@ -31,10 +31,17 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_USER: ${MYSQL_USER:-ERP_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-erp}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID:-}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET:-}
+      ALIYUN_OSS_ENDPOINT: ${ALIYUN_OSS_ENDPOINT:-https://oss-cn-beijing.aliyuncs.com}
+      ALIYUN_OSS_BUCKET: ${ALIYUN_OSS_BUCKET:-kangcode-erp}
+      ALIYUN_OSS_REGION: ${ALIYUN_OSS_REGION:-cn-beijing}
       TZ: Asia/Shanghai
+    volumes:
+      - upload_data:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -61,3 +68,4 @@ networks:
 
 volumes:
   mysql_data:
+  upload_data:
