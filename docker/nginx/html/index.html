@@ -5,30 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ERP 进销存管理系统</title>
   <script>
-    // ===== 登录鉴权检查 =====
     (function() {
       try {
         var loginStr = localStorage.getItem('erp_login');
         if (!loginStr) {
-          window.location.replace('./login.html');
+          window.location.replace('/login.html');
           return;
         }
         var info = JSON.parse(loginStr);
-        // 旧数据没有 role — 清掉重新登录
         if (!info || info.token === undefined || info.role === undefined || info.role === null) {
           localStorage.removeItem('erp_login');
           localStorage.removeItem('erp_username');
-          window.location.replace('./login.html');
+          window.location.replace('/login.html');
           return;
         }
       } catch(e) {
         localStorage.removeItem('erp_login');
         localStorage.removeItem('erp_username');
-        window.location.replace('./login.html');
+        window.location.replace('/login.html');
       }
     })();
 
-    // 提供一个全局函数供 Vue SPA 获取当前登录用户
     window.__getLoginUser = function() {
       try {
         var str = localStorage.getItem('erp_login');
@@ -42,10 +39,14 @@
       } catch(e) { return ''; }
     };
   </script>
-  <script type="module" crossorigin src="./assets/index-Dkas_vvv.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-DzkRAf2O.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <script type="module" crossorigin src="/assets/index-CNgTHekX.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BC8pmnvW.css">
+  <link rel="stylesheet" href="/assets/erp-theme.css">
 </head>
 <body>
   <div id="app"></div>
+  <script src="/assets/goods-supplier.js"></script>
 </body>
 </html>
