@@ -1,4 +1,4 @@
-package com.kangcode.Controller;
+package com.kangcode.controller;
 
 import com.kangcode.Service.CustomerService;
 import com.kangcode.pojo.Customer;

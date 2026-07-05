@@ -18,7 +18,7 @@
     </resultMap>
 
     <!-- 新增 -->
-    <insert id="insert">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         insert into supplier
         (supplier_name, contact, phone, address)
         values
@@ -49,5 +49,11 @@
     <!-- 查询全部 -->
     <select id="list" resultMap="supplierMap">
         select * from supplier
+    </select>
+
+    <select id="searchByName" resultMap="supplierMap">
+        select * from supplier
+        where supplier_name like concat('%', #{keyword}, '%')
+        limit 50
     </select>
 </mapper>

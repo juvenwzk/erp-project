@@ -1,10 +1,12 @@
-package com.kangcode.Controller;
+package com.kangcode.controller;
 
 import com.kangcode.Service.PurchaseService;
 import com.kangcode.pojo.PageResult;
 import com.kangcode.pojo.PurchaseOrder;
 import com.kangcode.pojo.PurchaseQueryParam;
 import com.kangcode.pojo.Result;
+import com.kangcode.utils.RequestContextUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +21,8 @@ public class PurchaseController {
 
     // 1. 新增采购订单
     @PostMapping
-    public Result add(@RequestBody PurchaseOrder purchaseOrder) {
+    public Result add(@RequestBody PurchaseOrder purchaseOrder, HttpServletRequest request) {
+        purchaseOrder.setUserId(RequestContextUtils.resolveUserId(request, purchaseOrder.getUserId()));
         log.info("添加采购订单: {}", purchaseOrder);
         purchaseService.addOrder(purchaseOrder);
         return Result.success();

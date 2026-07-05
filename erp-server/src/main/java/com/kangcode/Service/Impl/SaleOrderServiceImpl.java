@@ -51,7 +51,7 @@ public class SaleOrderServiceImpl implements SaleOrderService {
         if(good==null){
             throw new RuntimeException("商品不存在");
         }
-        if(good.getStockNum()<saleOrder.getSaleNum()){
+        if (good.getStockNum() == null || good.getStockNum() < saleOrder.getSaleNum()) {
             throw new RuntimeException("商品库存不足,无法创建订单");
         }
 
@@ -72,9 +72,11 @@ public class SaleOrderServiceImpl implements SaleOrderService {
         Double saleMoney = salePrice * saleOrder.getSaleNum();
         saleOrder.setSaleMoney(saleMoney);
 
-        //5.设置好状态和时间吗
+        //5.设置状态和时间（前端月份选择器可能只传 yyyy-MM，已由反序列化器解析）
         saleOrder.setStatus(STATUS_NOT_OUT);//将状态设置为未出库
-        saleOrder.setSaleTime(LocalDateTime.now());
+        if (saleOrder.getSaleTime() == null) {
+            saleOrder.setSaleTime(LocalDateTime.now());
+        }
         saleOrder.setCreateTime(LocalDateTime.now());
         saleOrder.setUpdateTime(LocalDateTime.now());
 
@@ -101,8 +103,9 @@ public class SaleOrderServiceImpl implements SaleOrderService {
                 ||!oldOrder.getSaleNum().equals(saleOrder.getSaleNum())
                 ||!java.util.Objects.equals(oldOrder.getSalePrice(), saleOrder.getSalePrice())){
             Good good=goodsMapper.getById(saleOrder.getGoodsId());
-            if(good==null)throw new RuntimeException("商品不存在");
-            if(good.getStockNum()<saleOrder.getSaleNum()) throw  new RuntimeException("商品库存不足");
+            if (good == null) throw new RuntimeException("商品不存在");
+            int stock = good.getStockNum() == null ? 0 : good.getStockNum();
+            if (stock < saleOrder.getSaleNum()) throw new RuntimeException("商品库存不足");
 
             // 确定销售单价：优先用订单自带价格，无则用商品默认价
             Double salePrice = saleOrder.getSalePrice() != null ? saleOrder.getSalePrice() : good.getSellPrice();
@@ -141,10 +144,16 @@ public class SaleOrderServiceImpl implements SaleOrderService {
         if (order.getStatus() != STATUS_NOT_OUT) throw new RuntimeException("只有未出库可出库");
 
         Good good = goodsMapper.getById(order.getGoodsId());
-        if (good.getStockNum() < order.getSaleNum()) throw new RuntimeException("库存不足");
+        if (good == null) {
+            throw new RuntimeException("商品不存在");
+        }
+        int currentStock = good.getStockNum() == null ? 0 : good.getStockNum();
+        if (currentStock < order.getSaleNum()) {
+            throw new RuntimeException("库存不足");
+        }
 
         // 扣库存
-        good.setStockNum(good.getStockNum() - order.getSaleNum());
+        good.setStockNum(currentStock - order.getSaleNum());
         goodsMapper.update(good);
 
         order.setStatus(STATUS_OUTED);

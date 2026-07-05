@@ -35,7 +35,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void update(User user) {
-        user.setPassword(DigestUtils.md5DigestAsHex(user.getPassword().getBytes()));
+        if (user.getPassword() != null && !user.getPassword().isBlank()) {
+            user.setPassword(DigestUtils.md5DigestAsHex(user.getPassword().getBytes()));
+        } else {
+            user.setPassword(null);
+        }
         userMapper.updateById(user);
     }
 
@@ -77,10 +81,18 @@ public class UserServiceImpl implements UserService {
         String inputPassword = DigestUtils.md5DigestAsHex(user.getPassword().getBytes());
 
 
-        //4.密码错误
-        if(!inputPassword.equals(u.getPassword())){
-            log.info("登录失败：密码错误 -> {}", user.getUsername());
-            throw new RuntimeException("密码错误");
+        //4.密码错误（兼容历史明文密码，匹配后自动升级为 MD5）
+        if (!inputPassword.equals(u.getPassword())) {
+            if (!user.getPassword().equals(u.getPassword())) {
+                log.info("登录失败：密码错误 -> {}", user.getUsername());
+                throw new RuntimeException("密码错误");
+            }
+            User upgrade = new User();
+            upgrade.setId(u.getId());
+            upgrade.setPassword(inputPassword);
+            userMapper.updateById(upgrade);
+            u.setPassword(inputPassword);
+            log.info("已将用户 {} 的明文密码升级为 MD5", u.getUsername());
         }
         //5.登录成功
         log.info("登录成功：{}", u.getUsername());

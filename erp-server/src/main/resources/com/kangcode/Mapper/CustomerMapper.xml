@@ -16,14 +16,12 @@
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
-    <insert id="insert">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         insert into customer (
         cust_name,
         contact_preson,
         phone,
         address,
-        remark,
-        type,
         create_time,
         update_time
         )
@@ -32,8 +30,6 @@
         #{contactPreson},
         #{phone},
         #{address},
-        #{remark},
-        #{type},
         #{createTime},
         #{updateTime}
         )
@@ -48,12 +44,6 @@
             </if>
             <if test="address != null and address != ''">
                 address = #{address},
-            </if>
-            <if test="remark != null">
-                remark = #{remark},
-            </if>
-            <if test="type != null">
-                type = #{type},
             </if>
             update_time = now()
         </set>

@@ -47,6 +47,17 @@ public class CustomerServiceImpl implements CustomerService {
     public List<Customer> listAll() {
         return customerMapper.listAll();
     }
+    //根据用户名查询
+    @Override
+    public List<Customer> searchByName(String keyword) {
+
+        CustomerQueryParam param=new CustomerQueryParam();
+        param.setCustName(keyword);
+        param.setPage(1);
+        param.setPageSize(10);
+        PageResult result=page(param);
+        return (List<Customer>) result.getRows();
+    }
 
     @Override
     public Customer getById(Integer id) {

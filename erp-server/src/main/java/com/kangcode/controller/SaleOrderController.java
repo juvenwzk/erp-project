@@ -1,10 +1,12 @@
-package com.kangcode.Controller;
+package com.kangcode.controller;
 
 import com.kangcode.Service.SaleOrderService;
 import com.kangcode.pojo.PageResult;
 import com.kangcode.pojo.Result;
 import com.kangcode.pojo.SaleOrder;
 import com.kangcode.pojo.SaleOrderQueryParam;
+import com.kangcode.utils.RequestContextUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +20,8 @@ public class SaleOrderController {
 
     // 新增订单
     @PostMapping
-    public Result add(@RequestBody SaleOrder saleOrder){
+    public Result add(@RequestBody SaleOrder saleOrder, HttpServletRequest request){
+        saleOrder.setUserId(RequestContextUtils.resolveUserId(request, saleOrder.getUserId()));
         log.info("添加销售订单: {}", saleOrder);
         saleOrderService.addOrder(saleOrder);
         return Result.success();

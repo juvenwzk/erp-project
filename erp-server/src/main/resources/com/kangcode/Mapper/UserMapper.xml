@@ -17,7 +17,7 @@
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
-    <insert id="insertById">
+    <insert id="insertById" useGeneratedKeys="true" keyProperty="id">
         insert into user(username,password,name,gender,phone,email,role,
                          create_time,update_time)
         values(#{username},#{password},#{name},#{gender},#{phone},#{email},#{role},

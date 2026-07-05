@@ -18,4 +18,6 @@ public interface CustomerService {
     PageResult page(CustomerQueryParam customerQueryParam);
 
     List<Customer> listAll();
+
+    List<Customer> searchByName(String keyword);
 }

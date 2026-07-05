@@ -48,6 +48,19 @@ body {
   background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
   border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
   box-shadow: 4px 0 24px rgba(15, 23, 42, 0.08);
+  overflow-x: hidden !important;
+}
+
+.sidebar-menu {
+  overflow-x: hidden !important;
+  min-width: 0 !important;
+}
+
+.sidebar-menu .el-menu {
+  background: transparent !important;
+  border-right: none !important;
+  width: 100% !important;
+  overflow-x: hidden !important;
 }
 
 .sidebar-logo {
@@ -63,11 +76,6 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-.sidebar-menu .el-menu {
-  background: transparent !important;
-  border-right: none !important;
 }
 
 .sidebar-menu .el-menu-item,
@@ -96,6 +104,8 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: rgba(255, 255, 255, 0.45) !important;
   font-size: 12px !important;
+  overflow-x: hidden !important;
+  min-width: 0 !important;
 }
 
 /* ===== 顶栏 ===== */
@@ -170,12 +180,42 @@ body {
   --el-button-hover-border-color: var(--erp-primary-light);
 }
 
+/* 表格操作列：已完成后禁用按钮变灰 */
+.el-table .el-button.is-link.is-disabled,
+.el-table .el-button.is-link.is-disabled:hover,
+.el-table .el-button.is-link.is-disabled:focus {
+  color: #c0c4cc !important;
+  background: transparent !important;
+  cursor: not-allowed !important;
+  opacity: 0.65;
+}
+
 /* ===== 分页 ===== */
 .el-pagination.is-background .el-pager li.is-active {
   background-color: var(--erp-primary) !important;
 }
 
-/* ===== AI 助手区域（若存在） ===== */
+/* ===== 仪表盘 ===== */
+.dashboard .stat-card {
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+}
+.dashboard .pending-item {
+  border: 1px solid #e2e8f0;
+}
+.dashboard .overview-list strong {
+  color: var(--erp-primary-dark) !important;
+}
+
+/* ===== AI 智能助手 ===== */
+.ai-page.el-card {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.ai-layout {
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04) !important;
+}
+
 .agent-panel,
 .chat-panel,
 [class*="agent"] .el-card {

@@ -13,6 +13,7 @@
         <result property="salePrice" column="sale_price"/>
         <result property="saleMoney" column="sale_money"/>
         <result property="userId" column="user_id"/>
+        <result property="userName" column="userName"/>
         <result property="status" column="status"/>
         <result property="saleTime" column="sale_time"/>
         <result property="createTime" column="create_time"/>
@@ -21,14 +22,34 @@
         <result property="custName" column="custName"/>
     </resultMap>
 
+    <sql id="operatorNameExpr">
+        COALESCE(u.name, u.username, '-')
+    </sql>
+
+    <sql id="saleOrderColumns">
+        s.id,
+        s.goods_id,
+        s.cust_id,
+        s.sale_num,
+        s.sale_price,
+        s.sale_money,
+        s.user_id,
+        s.status,
+        s.sale_time,
+        s.create_time,
+        s.update_time
+    </sql>
+
     <select id="listByStatus" resultMap="saleOrderMap">
         SELECT
-        s.*,
+        <include refid="saleOrderColumns"/>,
         g.goods_name AS goodsName,
-        c.cust_name AS custName
+        c.cust_name AS custName,
+        <include refid="operatorNameExpr"/> AS userName
         FROM sale_order s
         LEFT JOIN goods g ON s.goods_id = g.id
         LEFT JOIN customer c ON s.cust_id = c.id
+        LEFT JOIN user u ON s.user_id = u.id
         <where>
             <if test="status != null">
                 and s.status = #{status}
@@ -38,7 +59,7 @@
     </select>
 
     <!-- 新增销售订单 -->
-    <insert id="addOrder">
+    <insert id="addOrder" useGeneratedKeys="true" keyProperty="id">
        insert into sale_order (
         goods_id,
         cust_id,
@@ -103,25 +124,29 @@
     <select id="getById" resultMap="saleOrderMap">
 
         SELECT
-        s.*,
+        <include refid="saleOrderColumns"/>,
         g.goods_name AS goodsName,
-        c.cust_name AS custName
+        c.cust_name AS custName,
+        <include refid="operatorNameExpr"/> AS userName
         FROM sale_order s
         LEFT JOIN goods g ON s.goods_id = g.id
         LEFT JOIN customer c ON s.cust_id = c.id
+        LEFT JOIN user u ON s.user_id = u.id
         WHERE s.id = #{id}
 
     </select>
 
-    <!-- 分页条件查询采购订单（✅ 已修复，无user_id） -->
+    <!-- 分页条件查询销售订单 -->
     <select id="list" resultMap="saleOrderMap">
     SELECT
-        s.*,
-        g.goods_name  goodsName,
-        c.cust_name AS custName
+        <include refid="saleOrderColumns"/>,
+        g.goods_name  AS goodsName,
+        c.cust_name AS custName,
+        <include refid="operatorNameExpr"/> AS userName
         FROM sale_order s
         LEFT JOIN goods g ON s.goods_id = g.id
         LEFT JOIN customer c ON s.cust_id = c.id
+        LEFT JOIN user u ON s.user_id = u.id
         <where>
             <if test="status != null">
                 and s.status = #{status}

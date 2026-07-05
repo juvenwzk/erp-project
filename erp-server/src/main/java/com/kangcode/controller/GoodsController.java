@@ -1,4 +1,4 @@
-package com.kangcode.Controller;
+package com.kangcode.controller;
 
 import com.kangcode.Service.GoodsService;
 import com.kangcode.anno.Log;
@@ -25,11 +25,13 @@ public class GoodsController {
         log.info("添加商品:{}",good);
         // 新商品库存默认为0，只能通过采购入库增加
         good.setStockNum(0);
+        if (good.getMinStock() == null) {
+            good.setMinStock(10);
+        }
         goodsService.add(good);
-        return Result.success();
+        return Result.success(good.getId());
     }
 
-    @Log
     @GetMapping("/{id}")
     public Result getById(@PathVariable Integer id){
         log.info("根据Id查询商品: {}",id);
@@ -37,7 +39,6 @@ public class GoodsController {
         return Result.success(good);
 
     }
-    @Log
     @GetMapping("/list")
     public Result list(GoodsQueryParam goodsQueryParam){
         log.info("查询所有商品：{}",goodsQueryParam);
@@ -65,7 +66,6 @@ public class GoodsController {
     }
 
 
-@Log
     @GetMapping("/low-stock")
     public Result getLowStock(){
         log.info("查询库存低于10的");

@@ -18,4 +18,6 @@ public interface SupplierMapper {
     Supplier getById(Integer id);
 
     List<Supplier> list();
+
+    List<Supplier> searchByName(String keyword);
 }

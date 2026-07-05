@@ -1,4 +1,4 @@
-package com.kangcode.Controller;
+package com.kangcode.controller;
 
 import com.kangcode.Service.SupplierService;
 import com.kangcode.pojo.Result;
@@ -20,7 +20,7 @@ public class SupplierController {
     public Result add(@RequestBody  Supplier supplier){
         log.info("添加供应商:{}",supplier);
         supplierService.add(supplier);
-        return Result.success();
+        return Result.success(supplier.getId());
     }
 
     @DeleteMapping("/{id}")

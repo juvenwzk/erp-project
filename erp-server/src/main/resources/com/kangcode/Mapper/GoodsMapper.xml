@@ -4,12 +4,42 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.kangcode.Mapper.GoodsMapper">
 
-    <select id="listAll" resultType="com.kangcode.pojo.Good">
-        select g.*, t.type_name from goods g
+    <resultMap id="goodMap" type="com.kangcode.pojo.Good">
+        <id property="id" column="id"/>
+        <result property="goodsName" column="goods_name"/>
+        <result property="typeId" column="type_id"/>
+        <result property="buyPrice" column="buy_price"/>
+        <result property="sellPrice" column="sell_price"/>
+        <result property="stockNum" column="stock_num"/>
+        <result property="imageUrl" column="image_url"/>
+        <result property="remark" column="remark"/>
+        <result property="minStock" column="min_stock"/>
+        <result property="typeName" column="type_name"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="goodColumns">
+        g.id,
+        g.goods_name,
+        g.type_id,
+        g.buy_price,
+        g.sell_price,
+        g.stock_num,
+        g.image_url,
+        g.remark,
+        g.min_stock,
+        g.create_time,
+        g.update_time
+    </sql>
+
+    <select id="listAll" resultMap="goodMap">
+        select <include refid="goodColumns"/>, t.type_name
+        from goods g
         left join goods_type t on g.type_id = t.id
     </select>
 
-    <insert id="insert">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         insert into goods
         (
         goods_name,
@@ -19,6 +49,7 @@
         stock_num
         <if test="imageUrl != null and imageUrl != ''">, image_url</if>
         <if test="remark != null and remark != ''">, remark</if>
+        <if test="minStock != null">, min_stock</if>
         , create_time
         , update_time
         )
@@ -31,6 +62,7 @@
         #{stockNum}
         <if test="imageUrl != null and imageUrl != ''">, #{imageUrl}</if>
         <if test="remark != null and remark != ''">, #{remark}</if>
+        <if test="minStock != null">, #{minStock}</if>
         , now()
         , now()
         )
@@ -45,6 +77,9 @@
             stock_num = #{stockNum},
             image_url = #{imageUrl},
             remark = #{remark},
+            <if test="minStock != null">
+                min_stock = #{minStock},
+            </if>
             update_time = now()
         </set>
         where id = #{id}
@@ -57,11 +92,15 @@
         </foreach>
 
     </delete>
-    <select id="getById" resultType="com.kangcode.pojo.Good">
-        select * from goods where id=#{id}
+    <select id="getById" resultMap="goodMap">
+        select <include refid="goodColumns"/>, t.type_name
+        from goods g
+        left join goods_type t on g.type_id = t.id
+        where g.id = #{id}
     </select>
-    <select id="list" resultType="com.kangcode.pojo.Good">
-        select g.*, t.type_name from goods g
+    <select id="list" resultMap="goodMap">
+        select <include refid="goodColumns"/>, t.type_name
+        from goods g
         left join goods_type t on g.type_id = t.id
         <where>
             <if test="goodsName != null and goodsName != ''">
@@ -72,10 +111,11 @@
             </if>
         </where>
     </select>
-    <select id="getLowStock" resultType="com.kangcode.pojo.Good">
-        select g.*,t.type_name from goods g
+    <select id="getLowStock" resultMap="goodMap">
+        select <include refid="goodColumns"/>, t.type_name
+        from goods g
         left join goods_type t on g.type_id = t.id
-        where g.stock_num &lt; g.min_stock
+        where g.stock_num &lt; IFNULL(g.min_stock, 10)
     </select>
 
 </mapper>

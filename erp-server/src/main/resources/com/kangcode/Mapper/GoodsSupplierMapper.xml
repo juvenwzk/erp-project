@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kangcode.Mapper.GoodsSupplierMapper">
+
+    <resultMap id="voMap" type="com.kangcode.pojo.GoodsSupplierVO">
+        <id property="id" column="id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="goodsName" column="goods_name"/>
+        <result property="supplierId" column="supplier_id"/>
+        <result property="supplierName" column="supplier_name"/>
+        <result property="supplyPrice" column="supply_price"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="listByGoodsId" resultMap="voMap">
+        select gs.id,
+               gs.goods_id,
+               g.goods_name,
+               gs.supplier_id,
+               s.supplier_name,
+               gs.supply_price,
+               gs.create_time
+        from goods_supplier gs
+                 inner join goods g on gs.goods_id = g.id
+                 inner join supplier s on gs.supplier_id = s.id
+        where gs.goods_id = #{goodsId}
+        order by gs.id
+    </select>
+
+    <select id="listBySupplierId" resultMap="voMap">
+        select gs.id,
+               gs.goods_id,
+               g.goods_name,
+               gs.supplier_id,
+               s.supplier_name,
+               gs.supply_price,
+               gs.create_time
+        from goods_supplier gs
+                 inner join goods g on gs.goods_id = g.id
+                 inner join supplier s on gs.supplier_id = s.id
+        where gs.supplier_id = #{supplierId}
+        order by gs.id
+    </select>
+
+    <delete id="deleteByGoodsId">
+        delete from goods_supplier where goods_id = #{goodsId}
+    </delete>
+
+    <delete id="deleteBySupplierId">
+        delete from goods_supplier where supplier_id = #{supplierId}
+    </delete>
+
+    <delete id="deleteByGoodsIds">
+        delete from goods_supplier where goods_id in
+        <foreach collection="goodsIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteBySupplierIds">
+        delete from goods_supplier where supplier_id in
+        <foreach collection="supplierIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into goods_supplier (goods_id, supplier_id, supply_price, create_time)
+        values (#{goodsId}, #{supplierId}, #{supplyPrice}, now())
+    </insert>
+
+    <select id="listAll" resultMap="voMap">
+        select gs.id,
+               gs.goods_id,
+               g.goods_name,
+               gs.supplier_id,
+               s.supplier_name,
+               gs.supply_price,
+               gs.create_time
+        from goods_supplier gs
+                 inner join goods g on gs.goods_id = g.id
+                 inner join supplier s on gs.supplier_id = s.id
+        order by gs.goods_id, gs.id
+    </select>
+
+</mapper>

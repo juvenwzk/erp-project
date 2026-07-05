@@ -1,4 +1,4 @@
-package com.kangcode.Controller;
+package com.kangcode.controller;
 
 import com.kangcode.Service.GoodsTypeService;
 import com.kangcode.pojo.GoodsType;

@@ -23,4 +23,6 @@ public interface GoodsService {
     void update(Good good);
 
     Object getLowStock();
+
+    List<Good> searchByName(String keyword);
 }

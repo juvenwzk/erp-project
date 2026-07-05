@@ -69,9 +69,11 @@ public class PurchaseServiceImpl implements PurchaseService {
         Double totalMoney = buyPrice * purchaseOrder.getBuyNum();
         purchaseOrder.setTotalMoney(totalMoney);
 
-        // 5. 设置状态和时间
+        // 5. 设置状态和时间（前端月份选择器可能只传 yyyy-MM，已由反序列化器解析）
         purchaseOrder.setStatus(STATUS_NOT_IN);
-        purchaseOrder.setBuyTime(LocalDateTime.now());
+        if (purchaseOrder.getBuyTime() == null) {
+            purchaseOrder.setBuyTime(LocalDateTime.now());
+        }
         purchaseOrder.setCreateTime(LocalDateTime.now());
         purchaseOrder.setUpdateTime(LocalDateTime.now());
 
@@ -135,7 +137,8 @@ public class PurchaseServiceImpl implements PurchaseService {
         if (good == null) throw new RuntimeException("商品不存在");
 
         // 入库：增加库存
-        good.setStockNum(good.getStockNum() + order.getBuyNum());
+        int currentStock = good.getStockNum() == null ? 0 : good.getStockNum();
+        good.setStockNum(currentStock + order.getBuyNum());
         goodsMapper.update(good);
 
         order.setStatus(STATUS_INED);

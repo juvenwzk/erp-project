@@ -13,6 +13,8 @@
         <result property="buyPrice" column="buy_price"/>
         <result property="totalMoney" column="total_money"/>
         <result property="userId" column="user_id"/>
+        <result property="status" column="status"/>
+        <result property="userName" column="userName"/>
         <result property="buyTime" column="buy_time"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
@@ -20,14 +22,34 @@
         <result property="supplierName" column="supplierName"/>
     </resultMap>
 
+    <sql id="operatorNameExpr">
+        COALESCE(u.name, u.username, '-')
+    </sql>
+
+    <sql id="purchaseColumns">
+        p.id,
+        p.goods_id,
+        p.supplier_id,
+        p.buy_num,
+        p.buy_price,
+        p.total_money,
+        p.user_id,
+        p.status,
+        p.buy_time,
+        p.create_time,
+        p.update_time
+    </sql>
+
     <select id="listByStatus" resultMap="purchaseMap">
         SELECT
-        p.*,
+        <include refid="purchaseColumns"/>,
         s.supplier_name AS supplierName,
-        g.goods_name AS goodsName
+        g.goods_name AS goodsName,
+        <include refid="operatorNameExpr"/> AS userName
         FROM purchase_order p
         LEFT JOIN supplier s ON p.supplier_id = s.id
         LEFT JOIN goods g ON p.goods_id = g.id
+        LEFT JOIN user u ON p.user_id = u.id
         <where>
             <if test="status != null">
                 and p.status = #{status}
@@ -37,7 +59,7 @@
     </select>
 
     <!-- 新增采购订单 -->
-    <insert id="addOrder">
+    <insert id="addOrder" useGeneratedKeys="true" keyProperty="id">
        insert into purchase_order (
         goods_id,
         supplier_id,
@@ -104,31 +126,40 @@
     <!-- 根据ID查询采购订单 -->
     <select id="getById" resultMap="purchaseMap">
         SELECT
-        p.*,
+        <include refid="purchaseColumns"/>,
         g.goods_name AS goodsName,
-        s.supplier_name AS supplierName
+        s.supplier_name AS supplierName,
+        <include refid="operatorNameExpr"/> AS userName
         FROM purchase_order p
         LEFT JOIN goods g ON p.goods_id = g.id
         LEFT JOIN supplier s ON p.supplier_id = s.id
+        LEFT JOIN user u ON p.user_id = u.id
         WHERE p.id = #{id}
     </select>
 
     <!-- 分页条件查询采购订单 -->
     <select id="list" resultMap="purchaseMap">
         SELECT
-        p.*,
+        <include refid="purchaseColumns"/>,
         s.supplier_name AS supplierName,
-        g.goods_name AS goodsName
+        g.goods_name AS goodsName,
+        <include refid="operatorNameExpr"/> AS userName
         FROM purchase_order p
         LEFT JOIN supplier s ON p.supplier_id = s.id
         LEFT JOIN goods g ON p.goods_id = g.id
+        LEFT JOIN user u ON p.user_id = u.id
         <where>
-
+            <if test="status != null">
+                and p.status = #{status}
+            </if>
             <if test="goodsId != null">
                 and p.goods_id = #{goodsId}
             </if>
             <if test="supplierId != null">
                 and p.supplier_id = #{supplierId}
+            </if>
+            <if test="userId != null">
+                and p.user_id = #{userId}
             </if>
             <if test="buyTimeStart != null and buyTimeEnd != null">
                 and p.buy_time between #{buyTimeStart} and #{buyTimeEnd}

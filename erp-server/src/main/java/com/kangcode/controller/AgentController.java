@@ -1,8 +1,8 @@
-package com.kangcode.Controller;
+package com.kangcode.controller;
 
 import com.kangcode.Service.AgentService;
 import com.kangcode.pojo.Result;
-import com.kangcode.utils.JwtUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,21 +18,21 @@ public class AgentController {
     @Autowired
     private AgentService agentService;
 
-    @Autowired
-    private JwtUtils jwtUtils;
-
     @PostMapping("/chat")
-    public Result chat(@RequestBody Map<String, Object> request,
-                       @RequestHeader("Authorization") String authHeader) {
-        Integer userId = null;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            if (jwtUtils.validateToken(token)) {
-                userId = jwtUtils.getUserId(token);
-            }
+    public Result chat(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
+        String userIdStr = (String) httpRequest.getAttribute("userId");
+        Integer userId = userIdStr != null ? Integer.parseInt(userIdStr) : null;
+        if (userId == null) {
+            return Result.error("请先登录后再使用 AI 助手");
         }
+
         @SuppressWarnings("unchecked")
         List<Map<String, String>> messages = (List<Map<String, String>>) request.get("messages");
+        if (messages == null || messages.isEmpty()) {
+            return Result.error("消息不能为空");
+        }
+
+        log.info("[Agent] chat userId={} messageCount={}", userId, messages.size());
         String reply = agentService.chat(messages, userId);
         return Result.success(Map.of("reply", reply));
     }

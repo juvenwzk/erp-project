@@ -43,17 +43,24 @@ public class OperationLogAspect {
         olog.setOperateTime(LocalDateTime.now());
         olog.setClassName(joinPoint.getTarget().getClass().getName());
         olog.setMethodName(joinPoint.getSignature().getName());
-        olog.setMethodParams(Arrays.toString(joinPoint.getArgs()));
-        olog.setReturnValue(result !=null ?result.toString():"void");
+        olog.setMethodParams(truncate(Arrays.toString(joinPoint.getArgs()), 2000));
+        olog.setReturnValue(truncate(result != null ? result.toString() : "void", 2000));
         olog.setCostTime(costTime);
 
-        //保存操作日志
-        log.info("记录操作日志：{}",log);
-
-
-        operateLogMapper.insert(olog);
+        try {
+            operateLogMapper.insert(olog);
+        } catch (Exception e) {
+            log.warn("操作日志写入失败（不影响业务）: {}.{}", olog.getClassName(), olog.getMethodName(), e);
+        }
         return result;
 
+    }
+
+    private static String truncate(String value, int maxLen) {
+        if (value == null) {
+            return null;
+        }
+        return value.length() <= maxLen ? value : value.substring(0, maxLen) + "...(truncated)";
     }
 
     private Integer getCurrentUserId() {
